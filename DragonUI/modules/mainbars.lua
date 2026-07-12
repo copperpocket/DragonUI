@@ -835,6 +835,330 @@ end
     local dfXpBar = nil   -- custom XP bar frame
     local dfRepBar = nil  -- custom Rep bar frame
 
+    -- =========================================================================
+    -- XP / REP BAR VISIBILITY SYSTEM
+    -- =========================================================================
+
+    local xpRepVisibilityState = {
+        xp = {
+            hovered = false,
+            inCombat = InCombatLockdown(),
+            alpha = 1,
+            startAlpha = 1,
+            targetAlpha = 1,
+            elapsed = 0,
+            fading = false,
+        },
+        rep = {
+            hovered = false,
+            inCombat = InCombatLockdown(),
+            alpha = 1,
+            startAlpha = 1,
+            targetAlpha = 1,
+            elapsed = 0,
+            fading = false,
+        },
+    }
+
+    local function GetXpRepVisibilityConfig(barName)
+        local xprepbar = addon.db
+            and addon.db.profile
+            and addon.db.profile.xprepbar
+
+        local visibility = xprepbar and xprepbar.visibility
+        return visibility and visibility[barName]
+    end
+
+    local function GetXpRepVisibilityFadeDuration(barName)
+        local config = GetXpRepVisibilityConfig(barName)
+        return tonumber(config and config.fade_duration) or 0
+    end
+
+    local function IsCursorOverFrame(frame)
+        if not frame then
+            return false
+        end
+
+        local left = frame:GetLeft()
+        local right = frame:GetRight()
+        local bottom = frame:GetBottom()
+        local top = frame:GetTop()
+
+        if not left or not right or not bottom or not top then
+            return false
+        end
+
+        local cursorX, cursorY = GetCursorPosition()
+        local scale = UIParent:GetEffectiveScale()
+
+        cursorX = cursorX / scale
+        cursorY = cursorY / scale
+
+        return cursorX >= left
+            and cursorX <= right
+            and cursorY >= bottom
+            and cursorY <= top
+    end
+
+    local function IsXpRepBarEligible(barName)
+        if barName == "xp" then
+            return IsXpBarVisible()
+        elseif barName == "rep" then
+            return GetWatchedFactionInfo() ~= nil
+        end
+
+        return false
+    end
+
+    local function GetXpRepActualFrame(barName)
+        local style = GetXpBarStyle()
+
+        if barName == "xp" then
+            if style == "dragonflightui" then
+                return dfXpBar
+            end
+            return MainMenuExpBar
+        end
+
+        if barName == "rep" then
+            if style == "dragonflightui" then
+                return dfRepBar
+            end
+            return ReputationWatchBar
+        end
+
+        return nil
+    end
+
+    local function GetXpRepContainerFrame(barName)
+        if not addon.ActionBarFrames then
+            return nil
+        end
+
+        if barName == "xp" then
+            return addon.ActionBarFrames.xpbar
+        elseif barName == "rep" then
+            return addon.ActionBarFrames.repbar
+        end
+
+        return nil
+    end
+
+    local function ShouldShowXpRepBar(barName)
+        local config = GetXpRepVisibilityConfig(barName)
+        local state = xpRepVisibilityState[barName]
+
+        if not config or not state then
+            return true
+        end
+
+        local showOnHover = config.show_on_hover
+        local showInCombat = config.show_in_combat
+        local showWithTarget = config.show_with_target
+        local showOnHealth = config.show_on_health
+        local showOnPower = config.show_on_power
+
+        -- No custom conditions means preserve normal behavior.
+        if not showOnHover
+            and not showInCombat
+            and not showWithTarget
+            and not showOnHealth
+            and not showOnPower then
+            return true
+        end
+
+        if showOnHover and state.hovered then
+            return true
+        end
+
+        if showInCombat and state.inCombat then
+            return true
+        end
+
+        if showWithTarget and UnitExists("target") then
+            return true
+        end
+
+        if showOnHealth then
+            local health = UnitHealth("player")
+            local maxHealth = UnitHealthMax("player")
+
+            if maxHealth and maxHealth > 0
+                and health and health < maxHealth then
+                return true
+            end
+        end
+
+        if showOnPower then
+            local power
+            local maxPower
+
+            if UnitPower and UnitPowerMax then
+                power = UnitPower("player")
+                maxPower = UnitPowerMax("player")
+            elseif UnitMana and UnitManaMax then
+                power = UnitMana("player")
+                maxPower = UnitManaMax("player")
+            end
+
+            if maxPower and maxPower > 0
+                and power and power < maxPower then
+                return true
+            end
+        end
+
+        return false
+    end
+
+    local function ApplyXpRepBarAlpha(barName, alpha)
+        local actualFrame = GetXpRepActualFrame(barName)
+
+        if actualFrame then
+            actualFrame:Show()
+            actualFrame:SetAlpha(alpha)
+        end
+
+        -- Keep the editor container available for hover detection.
+        local container = GetXpRepContainerFrame(barName)
+        if container and IsXpRepBarEligible(barName) then
+            container:Show()
+        end
+    end
+
+    local function StartXpRepBarFade(barName, shouldShow)
+        local state = xpRepVisibilityState[barName]
+        local actualFrame = GetXpRepActualFrame(barName)
+
+        if not state or not actualFrame then
+            return
+        end
+
+        local targetAlpha = shouldShow and 1 or 0
+        local duration = GetXpRepVisibilityFadeDuration(barName)
+
+        local currentAlpha
+        if state.fading then
+            currentAlpha = state.alpha
+        else
+            currentAlpha = actualFrame:GetAlpha() or 1
+        end
+
+        currentAlpha = math.max(0, math.min(1, currentAlpha))
+
+        if duration <= 0
+            or math.abs(currentAlpha - targetAlpha) < 0.001 then
+
+            state.alpha = targetAlpha
+            state.startAlpha = targetAlpha
+            state.targetAlpha = targetAlpha
+            state.elapsed = 0
+            state.fading = false
+
+            ApplyXpRepBarAlpha(barName, targetAlpha)
+            return
+        end
+
+        state.alpha = currentAlpha
+        state.startAlpha = currentAlpha
+        state.targetAlpha = targetAlpha
+        state.elapsed = 0
+        state.fading = true
+
+        ApplyXpRepBarAlpha(barName, currentAlpha)
+    end
+
+    local function RefreshXpRepBarVisibility(barName)
+        if not IsXpRepBarEligible(barName) then
+            local actualFrame = GetXpRepActualFrame(barName)
+            local container = GetXpRepContainerFrame(barName)
+
+            if actualFrame then
+                actualFrame:SetAlpha(0)
+            end
+
+            if container and barName == "xp" then
+                container:Hide()
+            end
+
+            xpRepVisibilityState[barName].fading = false
+            xpRepVisibilityState[barName].alpha = 0
+            return
+        end
+
+        local shouldShow = ShouldShowXpRepBar(barName)
+        StartXpRepBarFade(barName, shouldShow)
+    end
+
+    function addon.RefreshXpRepBarVisibility()
+        RefreshXpRepBarVisibility("xp")
+        RefreshXpRepBarVisibility("rep")
+    end
+
+    local xpRepFadeFrame = CreateFrame("Frame")
+    xpRepFadeFrame:Show()
+
+    xpRepFadeFrame:SetScript("OnUpdate", function(_, elapsed)
+        for barName, state in pairs(xpRepVisibilityState) do
+            if state.fading then
+                local duration = GetXpRepVisibilityFadeDuration(barName)
+
+                if duration <= 0 then
+                    state.alpha = state.targetAlpha
+                    state.fading = false
+                else
+                    state.elapsed = state.elapsed + elapsed
+
+                    local progress = state.elapsed / duration
+
+                    if progress >= 1 then
+                        state.alpha = state.targetAlpha
+                        state.fading = false
+                    else
+                        local eased = progress * progress * (3 - 2 * progress)
+
+                        state.alpha = state.startAlpha
+                            + (state.targetAlpha - state.startAlpha) * eased
+                    end
+                end
+
+                ApplyXpRepBarAlpha(barName, state.alpha)
+            end
+        end
+    end)
+
+    -- Poll the editor-container rectangles so hover still works when the
+    -- actual XP/Rep bar has alpha 0.
+    local xpRepHoverFrame = CreateFrame("Frame")
+    local xpRepHoverElapsed = 0
+
+    xpRepHoverFrame:SetScript("OnUpdate", function(_, elapsed)
+        xpRepHoverElapsed = xpRepHoverElapsed + elapsed
+
+        if xpRepHoverElapsed < 0.05 then
+            return
+        end
+
+        xpRepHoverElapsed = 0
+
+        for _, barName in ipairs({"xp", "rep"}) do
+            local state = xpRepVisibilityState[barName]
+            local config = GetXpRepVisibilityConfig(barName)
+            local container = GetXpRepContainerFrame(barName)
+
+            if state and config and container and config.show_on_hover then
+                local hovered = IsCursorOverFrame(container)
+
+                if hovered ~= state.hovered then
+                    state.hovered = hovered
+                    RefreshXpRepBarVisibility(barName)
+                end
+            elseif state and state.hovered then
+                state.hovered = false
+                RefreshXpRepBarVisibility(barName)
+            end
+        end
+    end)
+
     -- ========== PET BAR SETUP (unchanged) ==========
     function MainMenuBarMixin:statusbar_setup()
         if PetActionBarFrame then
@@ -1614,330 +1938,6 @@ end
                 end
             end
         end
-
-        -- =========================================================================
-        -- XP / REP BAR VISIBILITY SYSTEM
-        -- =========================================================================
-
-        local xpRepVisibilityState = {
-            xp = {
-                hovered = false,
-                inCombat = InCombatLockdown(),
-                alpha = 1,
-                startAlpha = 1,
-                targetAlpha = 1,
-                elapsed = 0,
-                fading = false,
-            },
-            rep = {
-                hovered = false,
-                inCombat = InCombatLockdown(),
-                alpha = 1,
-                startAlpha = 1,
-                targetAlpha = 1,
-                elapsed = 0,
-                fading = false,
-            },
-        }
-
-        local function GetXpRepVisibilityConfig(barName)
-            local xprepbar = addon.db
-                and addon.db.profile
-                and addon.db.profile.xprepbar
-
-            local visibility = xprepbar and xprepbar.visibility
-            return visibility and visibility[barName]
-        end
-
-        local function GetXpRepVisibilityFadeDuration(barName)
-            local config = GetXpRepVisibilityConfig(barName)
-            return tonumber(config and config.fade_duration) or 0
-        end
-
-        local function IsCursorOverFrame(frame)
-            if not frame then
-                return false
-            end
-
-            local left = frame:GetLeft()
-            local right = frame:GetRight()
-            local bottom = frame:GetBottom()
-            local top = frame:GetTop()
-
-            if not left or not right or not bottom or not top then
-                return false
-            end
-
-            local cursorX, cursorY = GetCursorPosition()
-            local scale = UIParent:GetEffectiveScale()
-
-            cursorX = cursorX / scale
-            cursorY = cursorY / scale
-
-            return cursorX >= left
-                and cursorX <= right
-                and cursorY >= bottom
-                and cursorY <= top
-        end
-
-        local function IsXpRepBarEligible(barName)
-            if barName == "xp" then
-                return IsXpBarVisible()
-            elseif barName == "rep" then
-                return GetWatchedFactionInfo() ~= nil
-            end
-
-            return false
-        end
-
-        local function GetXpRepActualFrame(barName)
-            local style = GetXpBarStyle()
-
-            if barName == "xp" then
-                if style == "dragonflightui" then
-                    return dfXpBar
-                end
-                return MainMenuExpBar
-            end
-
-            if barName == "rep" then
-                if style == "dragonflightui" then
-                    return dfRepBar
-                end
-                return ReputationWatchBar
-            end
-
-            return nil
-        end
-
-        local function GetXpRepContainerFrame(barName)
-            if not addon.ActionBarFrames then
-                return nil
-            end
-
-            if barName == "xp" then
-                return addon.ActionBarFrames.xpbar
-            elseif barName == "rep" then
-                return addon.ActionBarFrames.repbar
-            end
-
-            return nil
-        end
-
-        local function ShouldShowXpRepBar(barName)
-            local config = GetXpRepVisibilityConfig(barName)
-            local state = xpRepVisibilityState[barName]
-
-            if not config or not state then
-                return true
-            end
-
-            local showOnHover = config.show_on_hover
-            local showInCombat = config.show_in_combat
-            local showWithTarget = config.show_with_target
-            local showOnHealth = config.show_on_health
-            local showOnPower = config.show_on_power
-
-            -- No custom conditions means preserve normal behavior.
-            if not showOnHover
-                and not showInCombat
-                and not showWithTarget
-                and not showOnHealth
-                and not showOnPower then
-                return true
-            end
-
-            if showOnHover and state.hovered then
-                return true
-            end
-
-            if showInCombat and state.inCombat then
-                return true
-            end
-
-            if showWithTarget and UnitExists("target") then
-                return true
-            end
-
-            if showOnHealth then
-                local health = UnitHealth("player")
-                local maxHealth = UnitHealthMax("player")
-
-                if maxHealth and maxHealth > 0
-                    and health and health < maxHealth then
-                    return true
-                end
-            end
-
-            if showOnPower then
-                local power
-                local maxPower
-
-                if UnitPower and UnitPowerMax then
-                    power = UnitPower("player")
-                    maxPower = UnitPowerMax("player")
-                elseif UnitMana and UnitManaMax then
-                    power = UnitMana("player")
-                    maxPower = UnitManaMax("player")
-                end
-
-                if maxPower and maxPower > 0
-                    and power and power < maxPower then
-                    return true
-                end
-            end
-
-            return false
-        end
-
-        local function ApplyXpRepBarAlpha(barName, alpha)
-            local actualFrame = GetXpRepActualFrame(barName)
-
-            if actualFrame then
-                actualFrame:Show()
-                actualFrame:SetAlpha(alpha)
-            end
-
-            -- Keep the editor container available for hover detection.
-            local container = GetXpRepContainerFrame(barName)
-            if container and IsXpRepBarEligible(barName) then
-                container:Show()
-            end
-        end
-
-        local function StartXpRepBarFade(barName, shouldShow)
-            local state = xpRepVisibilityState[barName]
-            local actualFrame = GetXpRepActualFrame(barName)
-
-            if not state or not actualFrame then
-                return
-            end
-
-            local targetAlpha = shouldShow and 1 or 0
-            local duration = GetXpRepVisibilityFadeDuration(barName)
-
-            local currentAlpha
-            if state.fading then
-                currentAlpha = state.alpha
-            else
-                currentAlpha = actualFrame:GetAlpha() or 1
-            end
-
-            currentAlpha = math.max(0, math.min(1, currentAlpha))
-
-            if duration <= 0
-                or math.abs(currentAlpha - targetAlpha) < 0.001 then
-
-                state.alpha = targetAlpha
-                state.startAlpha = targetAlpha
-                state.targetAlpha = targetAlpha
-                state.elapsed = 0
-                state.fading = false
-
-                ApplyXpRepBarAlpha(barName, targetAlpha)
-                return
-            end
-
-            state.alpha = currentAlpha
-            state.startAlpha = currentAlpha
-            state.targetAlpha = targetAlpha
-            state.elapsed = 0
-            state.fading = true
-
-            ApplyXpRepBarAlpha(barName, currentAlpha)
-        end
-
-        local function RefreshXpRepBarVisibility(barName)
-            if not IsXpRepBarEligible(barName) then
-                local actualFrame = GetXpRepActualFrame(barName)
-                local container = GetXpRepContainerFrame(barName)
-
-                if actualFrame then
-                    actualFrame:SetAlpha(0)
-                end
-
-                if container and barName == "xp" then
-                    container:Hide()
-                end
-
-                xpRepVisibilityState[barName].fading = false
-                xpRepVisibilityState[barName].alpha = 0
-                return
-            end
-
-            local shouldShow = ShouldShowXpRepBar(barName)
-            StartXpRepBarFade(barName, shouldShow)
-        end
-
-        function addon.RefreshXpRepBarVisibility()
-            RefreshXpRepBarVisibility("xp")
-            RefreshXpRepBarVisibility("rep")
-        end
-
-        local xpRepFadeFrame = CreateFrame("Frame")
-        xpRepFadeFrame:Show()
-
-        xpRepFadeFrame:SetScript("OnUpdate", function(_, elapsed)
-            for barName, state in pairs(xpRepVisibilityState) do
-                if state.fading then
-                    local duration = GetXpRepVisibilityFadeDuration(barName)
-
-                    if duration <= 0 then
-                        state.alpha = state.targetAlpha
-                        state.fading = false
-                    else
-                        state.elapsed = state.elapsed + elapsed
-
-                        local progress = state.elapsed / duration
-
-                        if progress >= 1 then
-                            state.alpha = state.targetAlpha
-                            state.fading = false
-                        else
-                            local eased = progress * progress * (3 - 2 * progress)
-
-                            state.alpha = state.startAlpha
-                                + (state.targetAlpha - state.startAlpha) * eased
-                        end
-                    end
-
-                    ApplyXpRepBarAlpha(barName, state.alpha)
-                end
-            end
-        end)
-
-        -- Poll the editor-container rectangles so hover still works when the
-        -- actual XP/Rep bar has alpha 0.
-        local xpRepHoverFrame = CreateFrame("Frame")
-        local xpRepHoverElapsed = 0
-
-        xpRepHoverFrame:SetScript("OnUpdate", function(_, elapsed)
-            xpRepHoverElapsed = xpRepHoverElapsed + elapsed
-
-            if xpRepHoverElapsed < 0.05 then
-                return
-            end
-
-            xpRepHoverElapsed = 0
-
-            for _, barName in ipairs({"xp", "rep"}) do
-                local state = xpRepVisibilityState[barName]
-                local config = GetXpRepVisibilityConfig(barName)
-                local container = GetXpRepContainerFrame(barName)
-
-                if state and config and container and config.show_on_hover then
-                    local hovered = IsCursorOverFrame(container)
-
-                    if hovered ~= state.hovered then
-                        state.hovered = hovered
-                        RefreshXpRepBarVisibility(barName)
-                    end
-                elseif state and state.hovered then
-                    state.hovered = false
-                    RefreshXpRepBarVisibility(barName)
-                end
-            end
-        end)
 
 
         -- ========== XP BAR VISIBILITY ==========
