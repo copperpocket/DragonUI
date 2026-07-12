@@ -220,7 +220,7 @@ end
             SetChatHoverButtonsAlpha(i, tabAlpha)
 
             if cf and cf._dragonUIBgFrame and cf._dragonUIBgFrame:IsShown() then
-                local bgAlpha = styleIdleAlpha * GetChatVisibilityAlpha()
+                local bgAlpha = styleIdleAlpha
                 if IsAlphaChanged(cf._dragonUIBgFrame:GetAlpha(), bgAlpha) then
                     cf._dragonUIBgFrame:SetAlpha(bgAlpha)
                 end
@@ -228,30 +228,16 @@ end
 
             if eb then
                 if eb:GetBackdrop() then
-                    local ebAlpha = eb:HasFocus() and 1 or (ebIdleAlpha * GetChatVisibilityAlpha())
+                    local ebAlpha = eb:HasFocus() and 1 or ebIdleAlpha
                     if IsAlphaChanged(eb:GetAlpha(), ebAlpha) then
                         eb:SetAlpha(ebAlpha)
                     end
                 else
-                    local ebAlpha = GetChatVisibilityAlpha()
-
-                    if IsAlphaChanged(eb:GetAlpha(), ebAlpha) then
-                        eb:SetAlpha(ebAlpha)
+                    if IsAlphaChanged(eb:GetAlpha(), 1) then
+                        eb:SetAlpha(1)
                     end
                 end
             end
-
-            local function GetChatVisibilityConfig()
-            local cfg = addon.db
-                and addon.db.profile
-                and addon.db.profile.modules
-                and addon.db.profile.modules.chatmods
-
-            return cfg and cfg.visibility 
-        end
-
-        local function GetChatVisibilityAlpha()
-            return ChatModsModule.visibilityAlpha or 1
         end
 
         StartChatButtonsHoverUpdater(true)
@@ -333,8 +319,7 @@ local function EnsureChatButtonsHoverUpdater()
             -- causes a visible flicker when Blizzard restores textures between ticks.
 
             -- Mirror the tab's current alpha (Blizzard fades it via noMouseAlpha).
-            local masterAlpha = GetChatVisibilityAlpha()
-            local tabAlpha = (entry.tab and entry.tab:GetAlpha() or 0) * masterAlpha
+            local tabAlpha = entry.tab and entry.tab:GetAlpha() or 0
             if forceUpdate or entry.lastTabAlpha == nil or IsAlphaChanged(entry.lastTabAlpha, tabAlpha) then
                 SetChatHoverButtonsAlpha(entry.index, tabAlpha, entry)
                 entry.lastTabAlpha = tabAlpha
