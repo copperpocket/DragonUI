@@ -27,7 +27,7 @@ hoverFrame:SetFrameLevel(1)
 hoverFrame:SetSize(220, 100)
 hoverFrame:SetPoint("CENTER", PlayerFrame, "CENTER", 0, 0)
 hoverFrame:EnableMouse(true)
-hoverFrame:Hide()
+hoverFrame:Show()
 
 local function GetVisConfig()
     local cfg = UF and UF.GetConfig and UF.GetConfig("player")
