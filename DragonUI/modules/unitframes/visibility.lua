@@ -26,7 +26,7 @@ hoverFrame:SetFrameStrata("TOOLTIP")
 hoverFrame:SetFrameLevel(1)
 hoverFrame:SetSize(220, 100)
 hoverFrame:SetPoint("CENTER", PlayerFrame, "CENTER", 0, 0)
-hoverFrame:EnableMouse(true)
+hoverFrame:EnableMouse(false)
 hoverFrame:Show()
 
 local function GetVisConfig()
