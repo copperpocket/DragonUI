@@ -1062,3 +1062,7 @@ L["Fade Duration (seconds)"] = true
 L["How long the fade-out animation takes once it begins."] = true
 L["Map Only Fade"] = true
 L["Fade only the buttons, zone text, calendar, clock and tracking. The minimap and its blips stay fully visible."] = true
+L["Fade"] = true
+L["Fade In/Out"] = true
+L["Fade the target frame in when you select a target and out when you clear it."] = true
+L["Time in seconds for the target frame to fade in or out."] = true

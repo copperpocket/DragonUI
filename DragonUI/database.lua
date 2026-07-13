@@ -573,7 +573,8 @@ local defaults = {
                 enableNumericThreat = true,
                 enableThreatGlow = true,
                 show_name_background = true,
-                scale = 1.0
+                scale = 1.0,
+                fade = { enabled = false, duration = 0.25 },
             },
             focus = {
                 classcolor = false,

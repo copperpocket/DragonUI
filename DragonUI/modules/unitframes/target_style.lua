@@ -25,6 +25,7 @@ function UF.TargetStyle.Create(opts)
         configured    = false,  -- Frame setup is complete
         eventsFrame   = nil,    -- Event handler frame
         positionStabilizer = nil,
+        _fadeGen      = 0,      -- fade generation token (out-fade invalidation)
     }
 
     -- ----------------------------------------------------------------
@@ -205,6 +206,79 @@ function UF.TargetStyle.Create(opts)
     -- VISIBILITY
     -- ================================================================
 
+    -- ================================================================
+    -- STATUS BAR FADE CONTROLLER
+    -- ================================================================
+    -- SetAlpha() does not cascade to child frames in 3.3.5a, so the main
+    -- frame fade never touches the bars. On target loss Blizzard also runs
+    -- UnitFrameHealthBar_Update with the unit gone -> SetMinMaxValues(0,0)
+    -- + SetValue(0), which empties the fill. We freeze + defer both.
+
+    local FADE_BARS = { HealthBar, ManaBar }
+
+    local function InstallBarFadeGuards()
+        for _, bar in ipairs(FADE_BARS) do
+            if bar and not bar.DragonUI_FadeGuard then
+                -- Capture current methods (already wrapped by the
+                -- hooksecurefunc calls in SetupBarHooks, so install AFTER them).
+                bar.DragonUI_RealHide      = bar.Hide
+                bar.DragonUI_RealSetValue  = bar.SetValue
+                bar.DragonUI_RealSetMinMax = bar.SetMinMaxValues
+
+                local function frozen()
+                    return Module._fadingOut and not UnitExists(unitToken)
+                end
+
+                bar.Hide = function(self, ...)
+                    if frozen() then
+                        self._pendingHide = true   -- deferred to finishedFunc
+                        return
+                    end
+                    return bar.DragonUI_RealHide(self, ...)
+                end
+
+                bar.SetValue = function(self, ...)
+                    if frozen() then return end     -- keep last fill
+                    return bar.DragonUI_RealSetValue(self, ...)
+                end
+
+                bar.SetMinMaxValues = function(self, ...)
+                    if frozen() then return end     -- keep last range
+                    return bar.DragonUI_RealSetMinMax(self, ...)
+                end
+
+                bar.DragonUI_FadeGuard = true
+            end
+        end
+    end
+
+    local function FadeBarsTo(endAlpha, duration)
+        for _, bar in ipairs(FADE_BARS) do
+            if bar then
+                if UIFrameFadeRemoveFrame then UIFrameFadeRemoveFrame(bar) end
+                local start = bar:GetAlpha() or 1
+                UIFrameFade(bar, {
+                    mode       = (endAlpha >= start) and "IN" or "OUT",
+                    timeToFade = duration,
+                    startAlpha = start,
+                    endAlpha   = endAlpha,
+                })
+            end
+        end
+    end
+
+    -- Cancel any in-flight bar fade, unfreeze, restore visibility for a new unit.
+    local function ResetBarsForNewUnit()
+        for _, bar in ipairs(FADE_BARS) do
+            if bar then
+                if UIFrameFadeRemoveFrame then UIFrameFadeRemoveFrame(bar) end
+                bar._pendingHide = nil
+                bar:SetAlpha(1)
+                if bar.DragonUI_RealHide then bar:Show() end
+            end
+        end
+    end
+
     local function ShouldBeVisible()
         return UnitExists(unitToken)
     end
@@ -219,6 +293,80 @@ function UF.TargetStyle.Create(opts)
         if BlizzFrame and BlizzFrame.HideTest then
             BlizzFrame:HideTest()
         end
+    end
+
+    -- ================================================================
+    -- TARGET FADE (fade in on select, fade out on clear)
+    -- ================================================================
+
+    local function GetFadeConfig()
+        local config = GetConfig()
+        return config and config.fade
+    end
+
+    local function FadeFrameIn(fresh)
+        local fade = GetFadeConfig()
+        if not (fade and fade.enabled) then return end
+
+        Module._fadeGen = Module._fadeGen + 1   -- invalidate any pending out-fade
+        Module._fadingOut = false
+        ResetBarsForNewUnit()                   -- unfreeze + cancel bar fade
+        if UIFrameFadeRemoveFrame then UIFrameFadeRemoveFrame(BlizzFrame) end
+
+        local duration = fade.duration or 0.25
+        if duration <= 0 then
+            BlizzFrame:SetAlpha(1)
+            return
+        end
+
+        local startAlpha = fresh and 0 or (BlizzFrame:GetAlpha() or 1)
+        UIFrameFade(BlizzFrame, {
+            mode = "IN", timeToFade = duration,
+            startAlpha = startAlpha, endAlpha = 1,
+        })
+        if fresh then FadeBarsTo(1, duration) end   -- bars were at 0 after an out-fade
+    end
+
+    local function FadeFrameOutAndHide()
+        local fade = GetFadeConfig()
+        if not (fade and fade.enabled) then return end
+
+        local duration = fade.duration or 0.25
+        if duration <= 0 then
+            Module._fadingOut = false
+            BlizzFrame:Hide()
+            BlizzFrame:SetAlpha(1)
+            return
+        end
+
+        Module._fadingOut = true
+        Module._fadeGen = Module._fadeGen + 1
+        local myGen = Module._fadeGen
+
+        BlizzFrame:Show()
+        if UIFrameFadeRemoveFrame then UIFrameFadeRemoveFrame(BlizzFrame) end
+
+        FadeBarsTo(0, duration)   -- fade the bars' own alpha in lockstep
+
+        UIFrameFade(BlizzFrame, {
+            mode = "OUT", timeToFade = duration,
+            startAlpha = BlizzFrame:GetAlpha() or 1, endAlpha = 0,
+            finishedFunc = function()
+                -- A newer target may have started mid-fade: bail out.
+                if myGen ~= Module._fadeGen then return end
+                if not UnitExists(unitToken) then
+                    BlizzFrame:Hide()             -- propagates hide to the bars
+                    for _, bar in ipairs(FADE_BARS) do
+                        if bar then
+                            bar._pendingHide = nil
+                            bar:SetAlpha(1)       -- reset for the next Show
+                        end
+                    end
+                end
+                BlizzFrame:SetAlpha(1)
+                Module._fadingOut = false
+            end,
+        })
     end
 
     -- ================================================================
@@ -481,6 +629,10 @@ function UF.TargetStyle.Create(opts)
         if opts.afterBarHooks then
             opts.afterBarHooks(Module, ManaBar, GetConfig, updateCache)
         end
+        
+        -- Install fade guards last, so DragonUI_RealSetValue captures the
+        -- hooksecurefunc-wrapped methods rather than the raw ones.
+        InstallBarFadeGuards()
 
     end
 
@@ -886,6 +1038,19 @@ function UF.TargetStyle.Create(opts)
 
         Module.configured = true
 
+        -- Turn Blizzard's hide-on-target-loss into a fade-out.
+        if not Module.fadeHooked then
+            Module.fadeHooked = true
+            BlizzFrame:HookScript("OnHide", function(self)
+                local fade = GetFadeConfig()
+                if not (fade and fade.enabled) then return end
+                if Module._fadingOut then return end       -- our own fade is finishing
+                if UnitExists(unitToken) then return end    -- not a real target loss
+                FadeFrameOutAndHide()
+            end)
+        end
+
+
         -- ---- After-init callback (frame-specific hooks) ----
         if opts.afterInit then
             opts.afterInit({
@@ -1113,19 +1278,26 @@ function UF.TargetStyle.Create(opts)
             end
 
         elseif event == opts.unitChangedEvent then
-            -- Unit changed (target/focus) — clear throttle caches so first update is immediate
             updateCache.lastColorFrame = nil
             updateCache.lastPortraitClass = nil
-            if UnitExists(unitToken) and opts.forceLayoutOnUnitChange then
-                ForceReapplyLayout()
+            if UnitExists(unitToken) then
+                local hadUnit = Module._hasUnit
+                Module._hasUnit = true
+                if opts.forceLayoutOnUnitChange then
+                    ForceReapplyLayout()
+                end
+                UpdateNameBackground()
+                UpdateClassification()
+                QueueClassificationRefresh(0.08)
+                UpdateThreat()
+                UpdateHealthBarColor()
+                UpdateClassPortrait()
+                if Module.textSystem then Module.textSystem.update() end
+                FadeFrameIn(not hadUnit)   -- fade in; fresh=true if we had no target before
+            else
+                Module._hasUnit = false
+                -- No target: Blizzard hides the frame, our OnHide hook fades it out.
             end
-            UpdateNameBackground()
-            UpdateClassification()
-            QueueClassificationRefresh(0.08)
-            UpdateThreat()
-            UpdateHealthBarColor()
-            UpdateClassPortrait()
-            if Module.textSystem then Module.textSystem.update() end
 
         elseif event == "UNIT_MODEL_CHANGED"
             or event == "UNIT_PORTRAIT_UPDATE" then
@@ -1233,6 +1405,14 @@ function UF.TargetStyle.Create(opts)
         end
 
         ApplyWidgetPosition()
+
+        local fadeCfg = config.fade
+        if not (fadeCfg and fadeCfg.enabled) then
+            if UIFrameFadeRemoveFrame then UIFrameFadeRemoveFrame(BlizzFrame) end
+            Module._fadingOut = false
+            if UnitExists(unitToken) then BlizzFrame:SetAlpha(1) end
+        end
+
 
         if UnitExists(unitToken) then
             if opts.forceLayoutOnUnitChange then

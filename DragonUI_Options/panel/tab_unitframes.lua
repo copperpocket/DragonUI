@@ -487,6 +487,28 @@ local function BuildTargetSection(scroll)
         dbPath = "unitframe.target.show_name_background",
         callback = refreshTarget,
     })
+
+        C:AddHeading(s, LO["Fade"])
+
+    C:AddToggle(s, {
+        label = LO["Fade In/Out"],
+        desc = LO["Fade the target frame in when you select a target and out when you clear it."],
+        dbPath = "unitframe.target.fade.enabled",
+        callback = refreshTarget,
+    })
+
+    C:AddSlider(s, {
+        label = LO["Fade Duration"],
+        desc = LO["Time in seconds for the target frame to fade in or out."],
+        dbPath = "unitframe.target.fade.duration",
+        min = 0, max = 2, step = 0.05,
+        width = 200,
+        disabled = function()
+            return not C:GetDBValue("unitframe.target.fade.enabled")
+        end,
+        callback = refreshTarget,
+    })
+
 end
 
 local function BuildFocusSection(scroll)
