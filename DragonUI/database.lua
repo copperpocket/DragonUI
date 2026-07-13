@@ -737,6 +737,9 @@ local defaults = {
                     show_on_power = false,
                     fade_duration = 0,
                 },
+                fadeTimeVisible = 10,     -- seconds visible before fade (fast default)
+                fadeDuration    = 3,      -- fade animation length
+                fadingDisabled  = false,  -- true = chat never fades
             },
             combuctor = {
                 enabled = false -- All-in-one bag replacement with filtering and search

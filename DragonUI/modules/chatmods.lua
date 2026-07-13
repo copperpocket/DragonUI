@@ -382,11 +382,67 @@ local function EnsureChatButtonsHoverUpdater()
     ChatModsModule.hooks.chatButtonsHoverUpdater = updater
 end
 
+-- ============================================================================
+-- CHAT FADE (time-visible + fade-duration override)
+-- ============================================================================
+
+local DEFAULT_TIME_VISIBLE  = 120   -- Blizzard default: 120s before a line fades
+local DEFAULT_FADE_DURATION = 3     -- Blizzard default fade animation length
+
+local function GetFadeConfig()
+    local cfg = GetModuleConfig()
+    local timeVisible  = (cfg and cfg.fadeTimeVisible)  or DEFAULT_TIME_VISIBLE
+    local fadeDuration = (cfg and cfg.fadeDuration)      or DEFAULT_FADE_DURATION
+    local fadingOn     = not (cfg and cfg.fadingDisabled)
+    return timeVisible, fadeDuration, fadingOn
+end
+
+local function ApplyChatFadeToFrame(cf)
+    if not cf then return end
+    local timeVisible, fadeDuration, fadingOn = GetFadeConfig()
+    cf:SetFading(fadingOn)
+    if cf.SetTimeVisible  then cf:SetTimeVisible(timeVisible) end
+    if cf.SetFadeDuration then cf:SetFadeDuration(fadeDuration) end
+end
+
+local function ApplyChatFade()
+    for i = 1, CHAT_FRAME_LIMIT do
+        ApplyChatFadeToFrame(_G["ChatFrame" .. i])
+    end
+end
+
+
 local function ApplyChatFrameTweaks()
 
     ChatModsModule.frames.chatHoverEntries = ChatModsModule.frames.chatHoverEntries or {}
     wipe(ChatModsModule.frames.chatHoverEntries)
     local tabIdleAlpha = GetTabIdleAlpha(GetModuleConfig())
+
+    local DEFAULT_TIME_VISIBLE  = 120   -- Blizzard default
+    local DEFAULT_FADE_DURATION = 3
+
+    local function GetFadeConfig()
+        local cfg = GetModuleConfig()
+        local timeVisible  = (cfg and cfg.fadeTimeVisible)  or DEFAULT_TIME_VISIBLE
+        local fadeDuration = (cfg and cfg.fadeDuration)      or DEFAULT_FADE_DURATION
+        local fadingOn     = not (cfg and cfg.fadingDisabled)
+        return timeVisible, fadeDuration, fadingOn
+    end
+
+    local function ApplyChatFadeToFrame(cf)
+        if not cf then return end
+        local timeVisible, fadeDuration, fadingOn = GetFadeConfig()
+        cf:SetFading(fadingOn)
+        if cf.SetTimeVisible  then cf:SetTimeVisible(timeVisible) end
+        if cf.SetFadeDuration then cf:SetFadeDuration(fadeDuration) end
+    end
+
+    local function ApplyChatFade()
+        for i = 1, CHAT_FRAME_LIMIT do
+            ApplyChatFadeToFrame(_G["ChatFrame" .. i])
+        end
+    end
+
 
     for i = 1, CHAT_FRAME_LIMIT do
         local cf = _G[format("ChatFrame%d", i)]
@@ -398,7 +454,8 @@ local function ApplyChatFrameTweaks()
                 tab:SetAlpha(1)
                 tab.noMouseAlpha = tabIdleAlpha
             end
-            cf:SetFading(true)
+
+            ApplyChatFadeToFrame(cf)
 
             -- Unlimited resizing
             cf:SetMinResize(0, 0)
@@ -1030,6 +1087,14 @@ local function ApplyChatModsSystem()
         ChatModsModule.hooks.chatFadeWake = true
     end
 
+    if not ChatModsModule.hooks.tempWindowFade then
+        hooksecurefunc("FCF_OpenTemporaryWindow", function()
+            -- new frame is the currently selected dock frame; simplest is a full re-scan
+            ApplyChatFade()
+        end)
+        ChatModsModule.hooks.tempWindowFade = true
+    end
+
     ChatModsModule.applied = true
     StartChatButtonsHoverUpdater(true)
 end
@@ -1100,6 +1165,7 @@ local function OnProfileChanged()
         ApplyEditBoxPosition()
         ApplyChatStyle()
         ApplyEditboxStyle()
+        ApplyChatFade()
         RefreshChatFadeState()
     else
         if addon:ShouldDeferModuleDisable("chatmods", ChatModsModule) then
@@ -1135,6 +1201,12 @@ addon.RefreshChatFadeState = function()
     end
 end
 
+addon.ApplyChatFade = function()
+    if ChatModsModule.applied then
+        ApplyChatFade()
+    end
+end
+
 -- ============================================================================
 -- INITIALIZATION
 -- ============================================================================
@@ -1163,6 +1235,7 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1)
         -- by Blizzard's FCFManager_UpdateChatFrameListAlpha which fires after PEW.
         addon:After(1, function()
             if not ChatModsModule.applied then return end
+            ApplyChatFade()
             RefreshChatFadeState()
         end)
     end

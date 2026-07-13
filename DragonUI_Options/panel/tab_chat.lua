@@ -146,6 +146,45 @@ local function BuildChatTab(scroll)
         end,
     })
 
+    -- ====================================================================
+    -- FADE
+    -- ====================================================================
+    local fadeSection = C:AddSection(scroll, LO["Chat Fade"])
+
+    C:AddToggle(fadeSection, {
+        label   = LO["Disable Chat Fade"],
+        desc    = LO["When enabled, chat text never fades out."],
+        getFunc = function()
+            local cfg = addon.db.profile.modules and addon.db.profile.modules.chatmods
+            return cfg and cfg.fadingDisabled
+        end,
+        setFunc = function(val)
+            addon.db.profile.modules.chatmods.fadingDisabled = val
+            if addon.ApplyChatFade then addon.ApplyChatFade() end
+        end,
+    })
+
+    C:AddSlider(fadeSection, {
+        label  = LO["Time Visible (seconds)"],
+        desc   = LO["How long chat text stays fully visible before fading. Blizzard default is 120."],
+        min    = 5, max = 120, step = 1,
+        dbPath = "modules.chatmods.fadeTimeVisible",
+        callback = function()
+            if addon.ApplyChatFade then addon.ApplyChatFade() end
+        end,
+    })
+
+    C:AddSlider(fadeSection, {
+        label  = LO["Fade Duration (seconds)"],
+        desc   = LO["How long the fade-out animation takes once it begins."],
+        min    = 1, max = 10, step = 0.5,
+        dbPath = "modules.chatmods.fadeDuration",
+        callback = function()
+            if addon.ApplyChatFade then addon.ApplyChatFade() end
+        end,
+    })
+
+
 end
 
 -- Register the tab (order 14, after Bags)
