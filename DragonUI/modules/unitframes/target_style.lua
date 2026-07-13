@@ -308,9 +308,23 @@ function UF.TargetStyle.Create(opts)
         local fade = GetFadeConfig()
         if not (fade and fade.enabled) then return end
 
-        Module._fadeGen = Module._fadeGen + 1   -- invalidate any pending out-fade
+        Module._fadeGen = Module._fadeGen + 1
         Module._fadingOut = false
-        ResetBarsForNewUnit()                   -- unfreeze + cancel bar fade
+
+        -- In combat, UIFrameFade (Show) is blocked. Just show at full alpha.
+        if InCombatLockdown() then
+            BlizzFrame:SetAlpha(1)
+            for _, bar in ipairs(FADE_BARS) do
+                if bar then
+                    if UIFrameFadeRemoveFrame then UIFrameFadeRemoveFrame(bar) end
+                    bar._pendingHide = nil
+                    bar:SetAlpha(1)
+                end
+            end
+            return
+        end
+
+        ResetBarsForNewUnit()
         if UIFrameFadeRemoveFrame then UIFrameFadeRemoveFrame(BlizzFrame) end
 
         local duration = fade.duration or 0.25
@@ -324,12 +338,20 @@ function UF.TargetStyle.Create(opts)
             mode = "IN", timeToFade = duration,
             startAlpha = startAlpha, endAlpha = 1,
         })
-        if fresh then FadeBarsTo(1, duration) end   -- bars were at 0 after an out-fade
+        if fresh then FadeBarsTo(1, duration) end
     end
+
 
     local function FadeFrameOutAndHide()
         local fade = GetFadeConfig()
         if not (fade and fade.enabled) then return end
+
+        -- Fade uses Show()/Hide()/UIFrameFade — all protected on TargetFrame.
+        -- In combat we cannot run it; Blizzard already hid the frame securely.
+        if InCombatLockdown() then
+            Module._fadingOut = false
+            return
+        end
 
         local duration = fade.duration or 0.25
         if duration <= 0 then
@@ -346,20 +368,21 @@ function UF.TargetStyle.Create(opts)
         BlizzFrame:Show()
         if UIFrameFadeRemoveFrame then UIFrameFadeRemoveFrame(BlizzFrame) end
 
-        FadeBarsTo(0, duration)   -- fade the bars' own alpha in lockstep
+        FadeBarsTo(0, duration)
 
         UIFrameFade(BlizzFrame, {
             mode = "OUT", timeToFade = duration,
             startAlpha = BlizzFrame:GetAlpha() or 1, endAlpha = 0,
             finishedFunc = function()
-                -- A newer target may have started mid-fade: bail out.
                 if myGen ~= Module._fadeGen then return end
                 if not UnitExists(unitToken) then
-                    BlizzFrame:Hide()             -- propagates hide to the bars
+                    if not InCombatLockdown() then
+                        BlizzFrame:Hide()
+                    end
                     for _, bar in ipairs(FADE_BARS) do
                         if bar then
                             bar._pendingHide = nil
-                            bar:SetAlpha(1)       -- reset for the next Show
+                            bar:SetAlpha(1)
                         end
                     end
                 end
@@ -368,6 +391,7 @@ function UF.TargetStyle.Create(opts)
             end,
         })
     end
+
 
     -- ================================================================
     -- CLASS PORTRAIT
@@ -1044,8 +1068,9 @@ function UF.TargetStyle.Create(opts)
             BlizzFrame:HookScript("OnHide", function(self)
                 local fade = GetFadeConfig()
                 if not (fade and fade.enabled) then return end
-                if Module._fadingOut then return end       -- our own fade is finishing
-                if UnitExists(unitToken) then return end    -- not a real target loss
+                if Module._fadingOut then return end
+                if UnitExists(unitToken) then return end
+                if InCombatLockdown() then return end   -- fade is protected; skip in combat
                 FadeFrameOutAndHide()
             end)
         end

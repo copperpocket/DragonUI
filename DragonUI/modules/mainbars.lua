@@ -3049,9 +3049,10 @@ end
 -- Apply alpha to the main bar without fading the shared container itself.
 local function ApplyMainBarVisibilityAlpha(alpha)
     local artAlpha = alpha * GetMainBarArtBaseAlpha()
+    local inCombat = InCombatLockdown()
 
     -- Keep the container shown because other UI elements may use it.
-    if addon.pUiMainBar then
+    if addon.pUiMainBar and not inCombat then
         addon.pUiMainBar:Show()
     end
 
@@ -3060,7 +3061,9 @@ local function ApplyMainBarVisibilityAlpha(alpha)
         local button = _G["ActionButton" .. i]
 
         if button then
-            button:Show()
+            if not inCombat then
+                button:Show()          -- protected: only out of combat
+            end
             button:SetAlpha(alpha)
         end
     end
@@ -3123,6 +3126,25 @@ local function ApplyActionBarVisibilityAlpha(barName, frame, alpha)
         frame:SetAlpha(alpha)
     end
 end
+
+local visibilityCombatFrame = CreateFrame("Frame")
+local visibilityPending = false
+
+local _ApplyActionBarVisibilityAlpha = ApplyActionBarVisibilityAlpha
+ApplyActionBarVisibilityAlpha = function(barName, frame, alpha)
+    _ApplyActionBarVisibilityAlpha(barName, frame, alpha)
+    if InCombatLockdown() then
+        visibilityPending = true
+    end
+end
+
+visibilityCombatFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+visibilityCombatFrame:SetScript("OnEvent", function()
+    if visibilityPending then
+        visibilityPending = false
+        addon.RefreshActionBarVisibility()
+    end
+end)
 
 -- Fade state must be declared before StartActionBarFade and its OnUpdate.
 local actionBarFadeStates = {

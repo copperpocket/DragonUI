@@ -107,10 +107,13 @@ local function StopFade(targetAlpha)
 
     PlayerFrame:SetAlpha(targetAlpha)
 
-    if targetAlpha <= 0 then
-        PlayerFrame:EnableMouse(false)
-    else
-        PlayerFrame:EnableMouse(true)
+    -- EnableMouse IS protected on PlayerFrame; guard it.
+    if not InCombatLockdown() then
+        if targetAlpha <= 0 then
+            PlayerFrame:EnableMouse(false)
+        else
+            PlayerFrame:EnableMouse(true)
+        end
     end
 end
 
@@ -131,7 +134,7 @@ local function StartFade(targetAlpha, duration)
     fadeActive = true
 
     -- Enable interaction immediately when fading in.
-    if targetAlpha > 0 then
+    if targetAlpha > 0 and not InCombatLockdown() then
         PlayerFrame:EnableMouse(true)
     end
 end

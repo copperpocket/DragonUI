@@ -78,13 +78,14 @@ addon.UFL_UnitGetTotalAbsorbs = UFL_UnitGetTotalAbsorbs;
 -- POWER BAR COLOR SETUP
 -- ============================================================================
 
-PowerBarColor = PowerBarColor or {};
-if PowerBarColor["RAGE"] then
-	PowerBarColor["RAGE"].fullPowerAnim = true;
-end
-if PowerBarColor["ENERGY"] then
-	PowerBarColor["ENERGY"].fullPowerAnim = true;
-end
+-- ============================================================================
+-- POWER BAR COLOR SETUP
+-- ============================================================================
+-- Intentionally left empty. Writing to the global PowerBarColor table taints
+-- it; Blizzard's UnitFrameManaBar_UpdateType() reads PowerBarColor, so any
+-- write here spreads DragonUI taint into secure unit-frame code. fullPowerAnim
+-- also has no effect in 3.3.5a.
+
 
 -- ============================================================================
 -- CORE BAR UPDATE FUNCTIONS
