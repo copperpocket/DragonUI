@@ -1060,3 +1060,5 @@ L["Time Visible (seconds)"] = true
 L["How long chat text stays fully visible before fading. Blizzard default is 120."] = true
 L["Fade Duration (seconds)"] = true
 L["How long the fade-out animation takes once it begins."] = true
+L["Map Only Fade"] = true
+L["Fade only the buttons, zone text, calendar, clock and tracking. The minimap and its blips stay fully visible."] = true

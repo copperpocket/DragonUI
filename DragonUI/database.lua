@@ -419,6 +419,7 @@ local defaults = {
                 show_on_health = false,
                 show_on_power = false,
                 fade_duration = 0,
+                map_only = false,
             },
         },
 

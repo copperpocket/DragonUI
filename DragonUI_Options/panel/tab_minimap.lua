@@ -196,6 +196,16 @@ local function BuildMinimapTab(scroll)
         callback = RefreshMinimapVisibility,
     })
 
+    C:AddToggle(visibility, {
+        label   = LO["Map Only Fade"],
+        desc    = LO["Fade only the buttons, zone text, calendar, clock and tracking. The minimap and its blips stay fully visible."],
+        dbPath  = "minimap.visibility.map_only",
+        callback = function()
+            if addon.RefreshMinimap then addon.RefreshMinimap() end
+        end,
+    })
+
+
     C:AddSlider(visibility, {
         label = LO["Fade Duration"],
         desc = LO["Time in seconds used to fade the entire minimap in or out. Set to 0 for instant visibility changes."],

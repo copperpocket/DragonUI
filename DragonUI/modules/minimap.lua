@@ -2355,6 +2355,50 @@ local function GetMinimapFadeDuration()
     return tonumber(config and config.fade_duration) or 0
 end
 
+local function IsMapOnlyFade()
+    local config = GetMinimapVisibilityConfig()
+    return (config and config.map_only) or false
+end
+
+-- Chrome = everything OUTSIDE the map circle that should fade.
+-- The map, blips, player arrow, backdrop and border are intentionally excluded.
+local function GetChromeFadeFrames()
+    return {
+        MinimapZoomIn,
+        MinimapZoomOut,
+        MinimapZoneTextButton,
+        MinimapZoneText,          -- separate FontString; button alpha does not cascade to it
+        GameTimeFrame,            -- calendar
+        TimeManagerClockButton,   -- clock / time
+        MiniMapTracking,          -- tracking button + its icon
+        MinimapBorderTop,         -- decorative top bar that hosts the above
+    }
+end
+
+-- Current effective alpha of whatever the fade actually drives.
+-- In map-only mode the cluster stays pinned at 1, so read a chrome frame instead.
+local function GetCurrentFadeAlpha()
+    if IsMapOnlyFade() then
+        if MinimapZoomIn and MinimapZoomIn.GetAlpha then
+            return MinimapZoomIn:GetAlpha() or 1
+        end
+        return 1
+    end
+    if MinimapCluster then
+        return MinimapCluster:GetAlpha() or 1
+    end
+    return 1
+end
+
+local function SetChromeAlpha(alpha)
+    for _, frame in ipairs(GetChromeFadeFrames()) do
+        if frame and frame.SetAlpha then
+            frame:SetAlpha(alpha)
+        end
+    end
+end
+
+
 local function ApplyAlphaToMinimapTree(frame, alpha, visited)
     if not frame or visited[frame] then
         return
@@ -2397,6 +2441,7 @@ local BLIP_BLANK = "Interface\\AddOns\\DragonUI\\assets\\blip-blank.tga"
 -- "" to clear; the blip layer rejects "" so we point it at a transparent texture.
 local function SetEngineIconsVisible(show)
     if not Minimap then return end
+    if IsMapOnlyFade() then return end
     MinimapModule._engineIconsVisible = show
 
     MinimapModule._settingBlipTexture = true -- pass through the SetBlipTexture override
@@ -2421,6 +2466,30 @@ end
 local function ApplyMinimapAlpha(alpha)
     local editorFrame = MinimapModule.minimapFrame
     local isHidden = alpha <= 0.001
+
+    if IsMapOnlyFade() then
+        -- Keep the editor/mover frame available.
+        local editorFrame = MinimapModule.minimapFrame
+        if editorFrame then
+            editorFrame:Show()
+            editorFrame:SetAlpha(1)
+        end
+
+        -- Map, blips, backdrop and border stay fully visible at all times.
+        if MinimapCluster   then MinimapCluster:Show();  MinimapCluster:SetAlpha(1)  end
+        if Minimap          then Minimap:Show();         Minimap:SetAlpha(1)         end
+        if MinimapBackdrop  then MinimapBackdrop:Show(); MinimapBackdrop:SetAlpha(1) end
+        if MinimapModule.borderFrame then
+            MinimapModule.borderFrame:Show()
+            MinimapModule.borderFrame:SetAlpha(1)
+        end
+
+        -- Only the chrome fades.
+        SetChromeAlpha(alpha)
+
+        MinimapModule._minimapVisibilityHidden = false
+        return
+    end
 
     -- Keep the editor/mover frame available for positioning and hover polling.
     if editorFrame then
@@ -2539,7 +2608,7 @@ local function StartMinimapFade(shouldShow)
     if state.fading then
         currentAlpha = state.alpha
     else
-        currentAlpha = MinimapCluster:GetAlpha() or 1
+        currentAlpha = GetCurrentFadeAlpha()
     end
 
     currentAlpha = math.max(0, math.min(1, currentAlpha))
@@ -2901,6 +2970,18 @@ function addon:RefreshMinimap()
         if addon.RefreshMinimapVisibility then
             addon.RefreshMinimapVisibility()
         end
+
+        -- Clear per-frame chrome alpha when not in map-only mode so the
+        -- cluster-level fade fully controls opacity.
+        if not (addon.db.profile.minimap.visibility
+                and addon.db.profile.minimap.visibility.map_only) then
+            SetChromeAlpha(1)
+        end
+
+        if addon.RefreshMinimapVisibility then
+            addon.RefreshMinimapVisibility()
+        end
+
     end
 end
 
