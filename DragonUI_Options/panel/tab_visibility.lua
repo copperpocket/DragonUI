@@ -259,4 +259,4 @@ local function BuildVisibilityTab(scroll)
 end
 
 
-Panel:RegisterTab("visibility", "Visibility", BuildVisibilityTab, 5)
+Panel:RegisterTab("visibility", "Visibility", BuildVisibilityTab, 1.5)

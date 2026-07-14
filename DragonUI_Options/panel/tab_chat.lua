@@ -167,7 +167,7 @@ local function BuildChatTab(scroll)
     C:AddSlider(fadeSection, {
         label  = LO["Time Visible (seconds)"],
         desc   = LO["How long chat text stays fully visible before fading. Blizzard default is 120."],
-        min    = 5, max = 120, step = 1,
+        min    = 1, max = 120, step = 1,     -- ← changed 5 to 1
         dbPath = "modules.chatmods.fadeTimeVisible",
         callback = function()
             if addon.ApplyChatFade then addon.ApplyChatFade() end
