@@ -188,4 +188,4 @@ local function BuildChatTab(scroll)
 end
 
 -- Register the tab (order 14, after Bags)
-Panel:RegisterTab("chat", LO["Chat"], BuildChatTab, 14)
+Panel:RegisterTab("chat", LO["Chat"], BuildChatTab, 60)

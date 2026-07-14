@@ -438,4 +438,4 @@ local function BuildBagsTab(scroll)
 end
 
 -- Register the tab
-Panel:RegisterTab("bags", LO["Bags"], BuildBagsTab, 13)
+Panel:RegisterTab("bags", LO["Bags"], BuildBagsTab, 40)

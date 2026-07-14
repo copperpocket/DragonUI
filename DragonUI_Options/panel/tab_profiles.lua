@@ -196,4 +196,4 @@ local function BuildProfilesTab(scroll)
 end
 
 -- Register the tab
-Panel:RegisterTab("profiles", LO["Profiles"], BuildProfilesTab, 99)
+Panel:RegisterTab("profiles", LO["Profiles"], BuildProfilesTab, 300)

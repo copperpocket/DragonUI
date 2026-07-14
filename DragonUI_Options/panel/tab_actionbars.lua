@@ -609,4 +609,4 @@ local function BuildActionbarsTab(scroll)
 end
 
 -- Register the tab
-Panel:RegisterTab("actionbars", LO["Action Bars"], BuildActionbarsTab, 3)
+Panel:RegisterTab("actionbars", LO["Action Bars"], BuildActionbarsTab, 10)

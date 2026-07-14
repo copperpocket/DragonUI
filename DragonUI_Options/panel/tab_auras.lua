@@ -92,4 +92,4 @@ local function BuildAurasTab(scroll)
 end
 
 -- Register the tab (order 12 — after Enhancements, before Profiles)
-Panel:RegisterTab("auras", LO["Auras"], BuildAurasTab, 12)
+Panel:RegisterTab("auras", LO["Auras"], BuildAurasTab, 30)

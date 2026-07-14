@@ -213,6 +213,44 @@ local function BuildTargetVisibilitySection(scroll)
     C:AddSpacer(scroll)
 end
 
+local function BuildXpRepBarSection(scroll, subKey, label)
+    local refreshBars = function()
+        if addon.RefreshXpRepBars then addon.RefreshXpRepBars() end
+    end
+    local base = "xprepbar.visibility." .. subKey
+
+    local section = C:AddSection(scroll, label)
+
+    C:AddToggle(section, {
+        label = LO["Hidden"],
+        desc = "Hide this bar by default. The conditions below reveal it when met. Normal XP/Rep availability still applies.",
+        dbPath = base .. ".hidden",
+        callback = function() refreshBars(); Panel:SelectTab("visibility") end,
+    })
+
+    local function visDisabled() return not C:GetDBValue(base .. ".hidden") end
+
+    C:AddHeading(section, LO["Show When"])
+    C:AddToggle(section, { label = LO["Show on Hover"],  dbPath = base..".show_on_hover",   disabled = visDisabled, callback = refreshBars })
+    C:AddToggle(section, { label = LO["Show in Combat"], dbPath = base..".show_in_combat",  disabled = visDisabled, callback = refreshBars })
+    C:AddToggle(section, { label = LO["Show with Target"], dbPath = base..".show_with_target", disabled = visDisabled, callback = refreshBars })
+    C:AddToggle(section, { label = LO["Show When Health Is Not Full"], dbPath = base..".show_on_health", disabled = visDisabled, callback = refreshBars })
+    C:AddToggle(section, { label = LO["Show When Power Is Not Full"], dbPath = base..".show_on_power", disabled = visDisabled, callback = refreshBars })
+
+    C:AddSlider(section, {
+        label = LO["Fade Delay"], dbPath = base..".fade_delay",
+        min = 0, max = 20, step = 0.5, width = 200,
+        disabled = visDisabled, callback = refreshBars,
+    })
+    C:AddSlider(section, {
+        label = LO["Fade Duration"], dbPath = base..".fade_duration",
+        min = 0, max = 5, step = 0.1, width = 200,
+        disabled = visDisabled, callback = refreshBars,
+    })
+
+    C:AddSpacer(scroll)
+end
+
 
 -- The ONE tab builder.
 local function BuildVisibilityTab(scroll)
@@ -279,9 +317,12 @@ local function BuildVisibilityTab(scroll)
     BuildActionBarSection(scroll, "bottom_right", "Bottom Right Bar")
     BuildActionBarSection(scroll, "right",        "Right Bar")
     BuildActionBarSection(scroll, "left",         "Left Bar")
+    BuildXpRepBarSection(scroll, "xp",  "Experience Bar")
+    BuildXpRepBarSection(scroll, "rep", "Reputation Bar")
+
 
 
 end
 
 
-Panel:RegisterTab("visibility", "Visibility", BuildVisibilityTab, 1.5)
+Panel:RegisterTab("visibility", "Visibility", BuildVisibilityTab, 130)

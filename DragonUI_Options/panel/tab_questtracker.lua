@@ -50,4 +50,4 @@ local function BuildQuesttrackerTab(scroll)
 end
 
 -- Register the tab
-Panel:RegisterTab("questtracker", LO["Quest Tracker"], BuildQuesttrackerTab, 10)
+Panel:RegisterTab("questtracker", LO["Quest Tracker"], BuildQuesttrackerTab, 110)

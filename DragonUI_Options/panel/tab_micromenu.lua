@@ -83,4 +83,4 @@ local function BuildMicromenuTab(scroll)
 end
 
 -- Register the tab
-Panel:RegisterTab("micromenu", LO["Micro Menu"], BuildMicromenuTab, 9)
+Panel:RegisterTab("micromenu", LO["Micro Menu"], BuildMicromenuTab, 80)

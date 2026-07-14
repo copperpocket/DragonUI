@@ -301,4 +301,4 @@ local function BuildCastbarsTab(scroll)
 end
 
 -- Register the tab
-Panel:RegisterTab("castbars", LO["Cast Bars"], BuildCastbarsTab, 7)
+Panel:RegisterTab("castbars", LO["Cast Bars"], BuildCastbarsTab, 50)

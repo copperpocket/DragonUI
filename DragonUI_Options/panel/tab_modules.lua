@@ -251,4 +251,4 @@ local function BuildModulesTab(scroll)
 end
 
 -- Register the tab
-Panel:RegisterTab("modules", LO["Modules"], BuildModulesTab, 2)
+Panel:RegisterTab("modules", LO["Modules"], BuildModulesTab, 100)

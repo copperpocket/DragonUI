@@ -726,4 +726,4 @@ local function BuildUnitframesTab(scroll)
 end
 
 -- Register the tab
-Panel:RegisterTab("unitframes", LO["Unit Frames"], BuildUnitframesTab, 6)
+Panel:RegisterTab("unitframes", LO["Unit Frames"], BuildUnitframesTab, 120)

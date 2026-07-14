@@ -952,32 +952,15 @@ end
             return true
         end
 
-        local showOnHover = config.show_on_hover
-        local showInCombat = config.show_in_combat
-        local showWithTarget = config.show_with_target
-        local showOnHealth = config.show_on_health
-        local showOnPower = config.show_on_power
-
-        -- No custom conditions means preserve normal behavior.
-        if not showOnHover
-            and not showInCombat
-            and not showWithTarget
-            and not showOnHealth
-            and not showOnPower then
+        -- Master: "Hidden". If not hidden, behave normally (always shown when eligible).
+        if not config.hidden then
             return true
         end
 
-        if showOnHover and state.hovered then
-            return true
-        end
-
-        if showInCombat and state.inCombat then
-            return true
-        end
-
-        if showWithTarget and UnitExists("target") then
-            return true
-        end
+        -- Hidden by default: reveal only when a checked condition is satisfied.
+        if config.show_on_hover and state.hovered then return true end
+        if config.show_in_combat and state.inCombat then return true end
+        if config.show_with_target and UnitExists("target") then return true end
 
         if showOnHealth then
             local health = UnitHealth("player")
@@ -1067,6 +1050,30 @@ end
         ApplyXpRepBarAlpha(barName, currentAlpha)
     end
 
+    local function GetXpRepFadeDelay(barName)
+        local config = GetXpRepVisibilityConfig(barName)
+        return tonumber(config and config.fade_delay) or 0
+    end
+
+    local xpRepHideDelays = {}
+    local function GetXpRepHideDelay(barName)
+        if not xpRepHideDelays[barName] then
+            local f = CreateFrame("Frame")
+            f:Hide(); f._elapsed = 0; f._target = 0; f._bar = barName
+            f:SetScript("OnUpdate", function(self, e)
+                self._elapsed = self._elapsed + e
+                if self._elapsed < self._target then return end
+                self:Hide()
+                if IsXpRepBarEligible(self._bar) and not ShouldShowXpRepBar(self._bar) then
+                    StartXpRepBarFade(self._bar, false)
+                end
+            end)
+            xpRepHideDelays[barName] = f
+        end
+        return xpRepHideDelays[barName]
+    end
+
+
     local function RefreshXpRepBarVisibility(barName)
         if not IsXpRepBarEligible(barName) then
             local actualFrame = GetXpRepActualFrame(barName)
@@ -1085,8 +1092,21 @@ end
             return
         end
 
-        local shouldShow = ShouldShowXpRepBar(barName)
-        StartXpRepBarFade(barName, shouldShow)
+        if ShouldShowXpRepBar(barName) then
+            local d = xpRepHideDelays[barName]
+            if d then d:Hide(); d._elapsed = 0 end
+            StartXpRepBarFade(barName, true)
+        else
+            local delay = GetXpRepFadeDelay(barName)
+            if delay <= 0 then
+                local d = xpRepHideDelays[barName]
+                if d then d:Hide(); d._elapsed = 0 end
+                StartXpRepBarFade(barName, false)
+            else
+                local d = GetXpRepHideDelay(barName)
+                if not d:IsShown() then d._elapsed = 0; d._target = delay; d:Show() end
+            end
+        end
     end
 
     function addon.RefreshXpRepBarVisibility()

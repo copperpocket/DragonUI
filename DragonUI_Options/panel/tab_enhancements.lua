@@ -679,4 +679,4 @@ local function BuildEnhancementsTab(scroll)
 end
 
 -- Register the tab (order 11 = after Quest Tracker, before Profiles)
-Panel:RegisterTab("enhancements", LO["Enhancements"], BuildEnhancementsTab, 11)
+Panel:RegisterTab("enhancements", LO["Enhancements"], BuildEnhancementsTab, 70)

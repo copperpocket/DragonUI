@@ -124,4 +124,4 @@ local function BuildAdditionalBarsTab(scroll)
 end
 
 -- Register the tab (order 4 = right after Action Bars)
-Panel:RegisterTab("additionalbars", LO["Additional Bars"], BuildAdditionalBarsTab, 4)
+Panel:RegisterTab("additionalbars", LO["Additional Bars"], BuildAdditionalBarsTab, 20)

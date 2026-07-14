@@ -340,6 +340,7 @@ local defaults = {
             show_rep_text_on_hover = true,
             visibility = {
                 xp = {
+                    hidden = false,
                     show_on_hover = false,
                     show_in_combat = false,
                     show_with_target = false,
@@ -349,6 +350,7 @@ local defaults = {
                     fade_delay = 0,
                 },
                 rep = {
+                    hidden = false,
                     show_on_hover = false,
                     show_in_combat = false,
                     show_with_target = false,

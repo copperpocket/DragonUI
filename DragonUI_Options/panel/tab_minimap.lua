@@ -192,4 +192,4 @@ local function BuildMinimapTab(scroll)
 end
 
 -- Register the tab
-Panel:RegisterTab("minimap", LO["Minimap"], BuildMinimapTab, 8)
+Panel:RegisterTab("minimap", LO["Minimap"], BuildMinimapTab, 90)
