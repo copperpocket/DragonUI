@@ -28,7 +28,7 @@ end
 local subTabs = {
     { key = "general", label = LO["General"] },
     { key = "layout",  label = LO["Layout"] },
-    { key = "visibility", label = LO["Visibility"] },
+    { key = "visibility", label = "Enable Bars" },   -- literal, no LO[]
 }
 
 -- ============================================================================
@@ -541,13 +541,21 @@ local function RefreshVisibility()
     if addon.SyncBarCVarsFromProfile then addon.SyncBarCVarsFromProfile() end
 end
 
-local function BuildVisibilityTab(scroll)
-    local desc = C:AddSection(scroll, LO["Bar Visibility"])
-    C:AddDescription(desc,
-        LO["Control when action bars are visible. Bars can show only on hover, only in combat, or both. When no option is checked the bar is always visible."])
+-- ============================================================================
+-- BARS SUB-TAB (enable/disable secondary bars)
+-- Visibility conditions (hover/combat/hidden) now live in the centralized
+-- Visibility tab. This sub-tab only controls which secondary bars exist.
+-- ============================================================================
 
-    -- Enable/disable secondary bars
+local function RefreshVisibility()
+    if addon.RefreshActionBarVisibility then addon.RefreshActionBarVisibility() end
+    if addon.SyncBarCVarsFromProfile then addon.SyncBarCVarsFromProfile() end
+end
+
+local function BuildVisibilityTab(scroll)
     local enableSection = C:AddSection(scroll, LO["Enable / Disable Bars"])
+    C:AddDescription(enableSection,
+        "Turn secondary action bars on or off. Hide/reveal conditions (hover, combat, etc.) are on the Visibility tab.")
 
     C:AddToggle(enableSection, {
         label = LO["Bottom Left Bar"],
@@ -570,116 +578,6 @@ local function BuildVisibilityTab(scroll)
     C:AddToggle(enableSection, {
         label = LO["Left Bar"],
         dbPath = "actionbars.left_enabled",
-        callback = RefreshVisibility,
-    })
-
-    C:AddSlider(desc, {
-        label = LO["Fade Duration"],
-        desc = LO["Time in seconds used to fade action bars in or out. Set to 0 for instant visibility changes."],
-        dbPath = "actionbars.visibility_fade_duration",
-        min = 0,
-        max = 3,
-        step = 0.05,
-        width = 200,
-        callback = RefreshVisibility,
-    })
-
-    -- Main bar hover/combat
-    local mainVis = C:AddSection(scroll, LO["Main Bar"])
-
-    C:AddToggle(mainVis, {
-        label = LO["Show on Hover Only"],
-        desc = LO["Hide the main bar until you hover over it."],
-        dbPath = "actionbars.main_show_on_hover",
-        callback = RefreshVisibility,
-    })
-
-    C:AddToggle(mainVis, {
-        label = LO["Show in Combat Only"],
-        desc = LO["Hide the main bar until you enter combat."],
-        dbPath = "actionbars.main_show_in_combat",
-        callback = RefreshVisibility,
-    })
-
-    C:AddToggle(mainVis, {
-        label = LO["Show with Target"],
-        desc = LO["Show the main bar while a target exists."],
-        dbPath = "actionbars.main_show_with_target",
-        callback = RefreshVisibility,
-    })
-
-    C:AddToggle(mainVis, {
-        label = LO["Show When Health Is Not Full"],
-        desc = LO["Show the main bar while your health is below maximum."],
-        dbPath = "actionbars.main_show_on_health",
-        callback = RefreshVisibility,
-    })
-
-    C:AddToggle(mainVis, {
-        label = LO["Show When Power Is Not Full"],
-        desc = LO["Show the main bar while your mana or power is below maximum."],
-        dbPath = "actionbars.main_show_on_power",
-        callback = RefreshVisibility,
-    })
-
-
-    -- Bottom left hover/combat
-    local blVis = C:AddSection(scroll, LO["Bottom Left Bar"])
-
-    C:AddToggle(blVis, {
-        label = LO["Show on Hover Only"],
-        dbPath = "actionbars.bottom_left_show_on_hover",
-        callback = RefreshVisibility,
-    })
-
-    C:AddToggle(blVis, {
-        label = LO["Show in Combat Only"],
-        dbPath = "actionbars.bottom_left_show_in_combat",
-        callback = RefreshVisibility,
-    })
-
-    -- Bottom right hover/combat
-    local brVis = C:AddSection(scroll, LO["Bottom Right Bar"])
-
-    C:AddToggle(brVis, {
-        label = LO["Show on Hover Only"],
-        dbPath = "actionbars.bottom_right_show_on_hover",
-        callback = RefreshVisibility,
-    })
-
-    C:AddToggle(brVis, {
-        label = LO["Show in Combat Only"],
-        dbPath = "actionbars.bottom_right_show_in_combat",
-        callback = RefreshVisibility,
-    })
-
-    -- Right bar hover/combat
-    local rightVis = C:AddSection(scroll, LO["Right Bar"])
-
-    C:AddToggle(rightVis, {
-        label = LO["Show on Hover Only"],
-        dbPath = "actionbars.right_show_on_hover",
-        callback = RefreshVisibility,
-    })
-
-    C:AddToggle(rightVis, {
-        label = LO["Show in Combat Only"],
-        dbPath = "actionbars.right_show_in_combat",
-        callback = RefreshVisibility,
-    })
-
-    -- Left bar hover/combat
-    local leftVis = C:AddSection(scroll, LO["Left Bar"])
-
-    C:AddToggle(leftVis, {
-        label = LO["Show on Hover Only"],
-        dbPath = "actionbars.left_show_on_hover",
-        callback = RefreshVisibility,
-    })
-
-    C:AddToggle(leftVis, {
-        label = LO["Show in Combat Only"],
-        dbPath = "actionbars.left_show_in_combat",
         callback = RefreshVisibility,
     })
 end

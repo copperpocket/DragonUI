@@ -38,60 +38,43 @@ end
 -- Returns true (show) / false (hide).
 local function ShouldShow()
     local v = GetVisConfig()
+    if not v then return true end
 
-    -- Master switch off, or "hide by default" not set => normal behaviour (always visible)
-    if not v or not v.enabled then return true end
+    -- Single master: "Hidden". If not hidden, behave like normal WoW (always shown).
     if not v.hideByDefault then return true end
 
-    -- Base state: hidden. Any satisfied "show" condition reveals the frame.
-
+    -- Hidden by default: reveal only when a checked "Show When" condition is satisfied.
     if v.showInCombat and (InCombatLockdown() or UnitAffectingCombat("player")) then
         return true
     end
-
     if v.showWithTarget and UnitExists("target") then
         return true
     end
-
     if v.showOnHealth then
         local cur, max = UnitHealth("player"), UnitHealthMax("player")
-        if max > 0 and cur < max then
-            return true
-        end
+        if max > 0 and cur < max then return true end
     end
-
     if v.showOnMana then
         local cur, max
-
         if UnitPower and UnitPowerMax then
-            cur = UnitPower("player")
-            max = UnitPowerMax("player")
+            cur, max = UnitPower("player"), UnitPowerMax("player")
         else
-            cur = UnitMana("player")
-            max = UnitManaMax("player")
+            cur, max = UnitMana("player"), UnitManaMax("player")
         end
-
-        if max and max > 0 and cur and cur < max then
-            return true
-        end
+        if max and max > 0 and cur and cur < max then return true end
     end
-
     if v.showOnHover and hoverActive then
         return true
     end
-
-    -- Advanced macro conditional (native [condition] syntax), optional.
     if v.advanced and v.advanced ~= "" then
-        -- SecureCmdOptionParse returns the resolved value ("show") when a
-        -- condition matches. We treat any non-nil, non-empty result as "show".
         local ok, result = pcall(SecureCmdOptionParse, v.advanced)
-        if ok and result and result ~= "" then
-            return true
-        end
+        if ok and result and result ~= "" then return true end
     end
 
     return false
 end
+
+
 
 local Vis = {}
 addon.PlayerVisibility = Vis
@@ -170,35 +153,24 @@ fadeFrame:SetScript("OnUpdate", function(_, elapsed)
     PlayerFrame:SetAlpha(alpha)
 end)
 
-
-
 function Vis.Apply()
-    if not PlayerFrame then
-        return
-    end
+    if not PlayerFrame then return end
 
     local config = GetVisConfig()
-
-    -- Normal behavior when custom visibility is disabled.
-    if not config or not config.enabled then
+    if not config then
         StartFade(1, 0)
         return
     end
 
-    -- Keep the frame visible in vehicles and editor mode.
+    -- Editor mode / vehicle: always fully visible.
     if Vis.forceVisible or UnitHasVehicleUI("player") then
         StartFade(1, 0)
         return
     end
 
-    local shouldShow = ShouldShow()
-    local targetAlpha = shouldShow and 1 or 0
-    local duration = tonumber(config.fadeDuration) or 0
-
-    StartFade(targetAlpha, duration)
+    local targetAlpha = ShouldShow() and 1 or 0
+    StartFade(targetAlpha, tonumber(config.fadeDuration) or 0)
 end
-
-
 
 
 hoverFrame:SetScript("OnUpdate", function(self)

@@ -65,3 +65,4 @@ panel\tab_auras.lua
 panel\tab_bags.lua
 panel\tab_chat.lua
 panel\tab_profiles.lua
+panel\tab_visibility.lua

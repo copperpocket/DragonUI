@@ -2295,18 +2295,12 @@ local function ShouldShowMinimap()
         return true
     end
 
-    local hasCondition =
-        config.show_on_hover
-        or config.show_in_combat
-        or config.show_with_target
-        or config.show_on_health
-        or config.show_on_power
-
-    -- Preserve normal behavior when all custom conditions are disabled.
-    if not hasCondition then
+    -- Single master: "Hidden". If not hidden, behave like normal WoW.
+    if not config.hidden then
         return true
     end
 
+    -- Hidden by default: reveal only when a checked condition is satisfied.
     if config.show_on_hover and minimapVisibilityState.hovered then
         return true
     end

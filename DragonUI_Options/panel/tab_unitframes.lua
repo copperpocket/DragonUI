@@ -186,98 +186,6 @@ local function AddCommonControls(parent, unitKey, refreshFunc, opts)
     end
 end
 
-local function BuildPlayerVisibilitySection(scroll, refreshPlayer)
-    local s = C:AddSection(scroll, LO["Visibility"])
-
-    C:AddDescription(s,
-        LO["Optionally hide the player frame and reveal it only under chosen conditions. When disabled, the frame behaves normally. Uses alpha fading so it is safe in combat."])
-
-    C:AddToggle(s, {
-        label = LO["Enable Custom Visibility"],
-        desc = LO["Master switch. When off, the player frame is always visible as normal."],
-        dbPath = "unitframe.player.visibility.enabled",
-        callback = function()
-            refreshPlayer()
-            Panel:SelectTab("unitframes")
-        end,
-    })
-
-    local function visDisabled()
-        return not C:GetDBValue("unitframe.player.visibility.enabled")
-    end
-
-    C:AddToggle(s, {
-        label = LO["Hide By Default"],
-        desc = LO["Base state is hidden. The conditions below reveal the frame."],
-        dbPath = "unitframe.player.visibility.hideByDefault",
-        disabled = visDisabled,
-        callback = refreshPlayer,
-    })
-
-    C:AddHeading(s, LO["Show When"])
-
-    C:AddToggle(s, {
-        label = LO["In Combat"],
-        dbPath = "unitframe.player.visibility.showInCombat",
-        disabled = visDisabled,
-        callback = refreshPlayer,
-    })
-
-    C:AddToggle(s, {
-        label = LO["Target Selected"],
-        dbPath = "unitframe.player.visibility.showWithTarget",
-        disabled = visDisabled,
-        callback = refreshPlayer,
-    })
-
-    C:AddToggle(s, {
-        label = LO["Health Not Full"],
-        desc = LO["Reveal the frame whenever current health is below maximum."],
-        dbPath = "unitframe.player.visibility.showOnHealth",
-        disabled = visDisabled,
-        callback = refreshPlayer,
-    })
-
-    C:AddToggle(s, {
-        label = LO["Power Not Full"],
-        desc = LO["Reveal the frame whenever current mana/power is below maximum."],
-        dbPath = "unitframe.player.visibility.showOnMana",
-        disabled = visDisabled,
-        callback = refreshPlayer,
-    })
-
-    C:AddToggle(s, {
-        label = LO["Mouse Over"],
-        desc = LO["Reveal the player frame while the mouse is over its position."],
-        dbPath = "unitframe.player.visibility.showOnHover",
-        disabled = visDisabled,
-        callback = refreshPlayer,
-    })
-
-    C:AddSlider(s, {
-        label = LO["Fade Duration"],
-        desc = LO["Time in seconds used to fade the player frame in or out. Set to 0 for instant visibility changes."],
-        dbPath = "unitframe.player.visibility.fadeDuration",
-        min = 0,
-        max = 10,
-        step = 0.1,
-        width = 200,
-        disabled = visDisabled,
-        callback = refreshPlayer,
-    })
-
-    C:AddHeading(s, LO["Advanced"])
-
-    C:AddEditBox(s, {
-        label = LO["Custom Macro Condition"],
-        desc = LO["Optional. Native macro conditional syntax, e.g. [combat][@target,exists][mod:shift]. If it resolves, the frame is shown. Leave blank to ignore."],
-        dbPath = "unitframe.player.visibility.advanced",
-        disabled = visDisabled,
-        callback = refreshPlayer,
-    })
-end
-
-
 -- ============================================================================
 -- SUB-TAB BUILDERS
 -- ============================================================================
@@ -466,7 +374,6 @@ local function BuildPlayerSection(scroll)
             end,
         })
     end
-    BuildPlayerVisibilitySection(scroll, refreshPlayer)
 end
 
 local function BuildTargetSection(scroll)
@@ -487,28 +394,6 @@ local function BuildTargetSection(scroll)
         dbPath = "unitframe.target.show_name_background",
         callback = refreshTarget,
     })
-
-        C:AddHeading(s, LO["Fade"])
-
-    C:AddToggle(s, {
-        label = LO["Fade In/Out"],
-        desc = LO["Fade the target frame in when you select a target and out when you clear it."],
-        dbPath = "unitframe.target.fade.enabled",
-        callback = refreshTarget,
-    })
-
-    C:AddSlider(s, {
-        label = LO["Fade Duration"],
-        desc = LO["Time in seconds for the target frame to fade in or out."],
-        dbPath = "unitframe.target.fade.duration",
-        min = 0, max = 2, step = 0.05,
-        width = 200,
-        disabled = function()
-            return not C:GetDBValue("unitframe.target.fade.enabled")
-        end,
-        callback = refreshTarget,
-    })
-
 end
 
 local function BuildFocusSection(scroll)

@@ -3302,99 +3302,67 @@ function addon.UpdateActionBarVisibility(barName, frame)
     end
 
     local config = addon.db.profile.actionbars
-    local state = addon.visibilityStates
-        and addon.visibilityStates[barName]
-
+    local state = addon.visibilityStates and addon.visibilityStates[barName]
     if not state then
         return
     end
 
-    -- Disabled secondary bars remain visually hidden.
+    -- Disabled secondary bars stay hidden regardless of visibility settings.
     if barName ~= "main" then
         local enabledKey = barName .. "_enabled"
-
         if config[enabledKey] == false then
-            if not InCombatLockdown() then
-                frame:Show()
-            end
-
+            if not InCombatLockdown() then frame:Show() end
             StartActionBarFade(barName, frame, false)
             return
         end
     end
 
-    local showOnHover = config[barName .. "_show_on_hover"]
-    local showInCombat = config[barName .. "_show_in_combat"]
-    local showWithTarget = config[barName .. "_show_with_target"]
-    local showOnHealth = config[barName .. "_show_on_health"]
-    local showOnPower = config[barName .. "_show_on_power"]
-
-
-    -- No visibility rules means always visible.
-    if not showOnHover
-        and not showInCombat
-        and not showWithTarget
-        and not showOnHealth
-        and not showOnPower then
+    -- Master: "Hidden". If not hidden, behave like normal WoW (always shown).
+    if not config[barName .. "_hidden"] then
         StartActionBarFade(barName, frame, true)
         return
     end
 
+    -- Hidden by default: reveal only when a checked condition is satisfied.
+    local showOnHover    = config[barName .. "_show_on_hover"]
+    local showInCombat   = config[barName .. "_show_in_combat"]
+    local showWithTarget = config[barName .. "_show_with_target"]
+    local showOnHealth   = config[barName .. "_show_on_health"]
+    local showOnPower    = config[barName .. "_show_on_power"]
 
     local shouldShow = false
 
     if showOnHover and state.hovered then
         shouldShow = true
     end
-
     if showInCombat and state.inCombat then
         shouldShow = true
     end
-
     if showWithTarget and UnitExists("target") then
         shouldShow = true
     end
-
-    if barName == "main" and showOnHealth then
+    if showOnHealth then
         local health = UnitHealth("player")
         local maxHealth = UnitHealthMax("player")
-
-        if maxHealth and maxHealth > 0
-            and health and health < maxHealth then
+        if maxHealth and maxHealth > 0 and health and health < maxHealth then
             shouldShow = true
         end
     end
-
-    if barName == "main" and showOnPower then
-        local power
-        local maxPower
-
+    if showOnPower then
+        local power, maxPower
         if UnitPower and UnitPowerMax then
-            power = UnitPower("player")
-            maxPower = UnitPowerMax("player")
+            power, maxPower = UnitPower("player"), UnitPowerMax("player")
         elseif UnitMana and UnitManaMax then
-            power = UnitMana("player")
-            maxPower = UnitManaMax("player")
+            power, maxPower = UnitMana("player"), UnitManaMax("player")
         end
-
-        if maxPower and maxPower > 0
-            and power and power < maxPower then
+        if maxPower and maxPower > 0 and power and power < maxPower then
             shouldShow = true
         end
-    end
-
-    -- No conditions enabled means always visible.
-    if not showOnHover
-        and not showInCombat
-        and not showWithTarget
-        and not showOnHealth
-        and not showOnPower then
-        shouldShow = true
     end
 
     StartActionBarFade(barName, frame, shouldShow)
-
 end
+
 
 -- Refresh all action bars.
 function addon.RefreshActionBarVisibility()

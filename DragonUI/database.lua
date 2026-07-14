@@ -212,30 +212,54 @@ local defaults = {
 
         -- ACTION BAR VISIBILITY SETTINGS
         actionbars = {
-            -- Enable/disable secondary bars
             bottom_left_enabled = true,
             bottom_right_enabled = true,
             right_enabled = true,
             left_enabled = true,
 
-            -- Hover/combat visibility per bar
+            -- Main bar
+            main_hidden = false,
             main_show_on_hover = false,
             main_show_in_combat = false,
             main_show_with_target = false,
             main_show_on_health = false,
             main_show_on_power  = false,
 
+            -- Bottom Left bar
+            bottom_left_hidden = false,
             bottom_left_show_on_hover = false,
             bottom_left_show_in_combat = false,
+            bottom_left_show_with_target = false,
+            bottom_left_show_on_health = false,
+            bottom_left_show_on_power = false,
+
+            -- Bottom Right bar
+            bottom_right_hidden = false,
             bottom_right_show_on_hover = false,
             bottom_right_show_in_combat = false,
+            bottom_right_show_with_target = false,
+            bottom_right_show_on_health = false,
+            bottom_right_show_on_power = false,
+
+            -- Right bar
+            right_hidden = false,
             right_show_on_hover = false,
             right_show_in_combat = false,
+            right_show_with_target = false,
+            right_show_on_health = false,
+            right_show_on_power = false,
+
+            -- Left bar
+            left_hidden = false,
             left_show_on_hover = false,
             left_show_in_combat = false,
+            left_show_with_target = false,
+            left_show_on_health = false,
+            left_show_on_power = false,
 
             visibility_fade_duration = 0,
         },
+
 
         micromenu = {
             -- Legacy/shared settings
@@ -245,6 +269,7 @@ local defaults = {
             show_latency_indicator = true,
 
             visibility = {
+                hidden = false,
                 show_on_hover = false,
                 show_in_combat = false,
                 show_with_target = false,
@@ -275,6 +300,7 @@ local defaults = {
             x_position = 1,
             y_position = 41,
             visibility = {
+                hidden = false,
                 show_on_hover = false,
                 show_in_combat = false,
                 show_with_target = false,
@@ -413,6 +439,7 @@ local defaults = {
             addon_button_skin = true,
             addon_button_fade = false,
             visibility = {
+                hidden = false,
                 show_on_hover = false,
                 show_in_combat = false,
                 show_with_target = false,
@@ -430,6 +457,7 @@ local defaults = {
             buffs_hidden = false,
             separate_weapon_enchants = false,
             visibility = {
+                hidden = false,
                 show_on_hover = false,
                 show_in_combat = false,
                 show_with_target = false,
