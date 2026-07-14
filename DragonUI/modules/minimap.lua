@@ -2632,12 +2632,41 @@ local function StartMinimapFade(shouldShow)
     ApplyMinimapAlpha(currentAlpha)
 end
 
+local minimapHideDelay = CreateFrame("Frame")
+minimapHideDelay:Hide()
+minimapHideDelay._elapsed = 0
+minimapHideDelay._target = 0
+
+minimapHideDelay:SetScript("OnUpdate", function(self, e)
+    self._elapsed = self._elapsed + e
+    if self._elapsed < self._target then return end
+    self:Hide()
+    if not ShouldShowMinimap() then
+        StartMinimapFade(false)
+    end
+end)
+
 local function RefreshMinimapVisibilityInternal()
     if not IsMinimapSystemActive() then
         return
     end
 
-    StartMinimapFade(ShouldShowMinimap())
+    if ShouldShowMinimap() then
+        minimapHideDelay:Hide()
+        minimapHideDelay._elapsed = 0
+        StartMinimapFade(true)
+    else
+        local config = GetMinimapVisibilityConfig()
+        local delay = tonumber(config and config.fade_delay) or 0
+        if delay <= 0 then
+            minimapHideDelay:Hide()
+            StartMinimapFade(false)
+        elseif not minimapHideDelay:IsShown() then
+            minimapHideDelay._elapsed = 0
+            minimapHideDelay._target = delay
+            minimapHideDelay:Show()
+        end
+    end
 end
 
 function addon.RefreshMinimapVisibility()

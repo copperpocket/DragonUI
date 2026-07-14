@@ -258,6 +258,8 @@ local defaults = {
             left_show_on_power = false,
 
             visibility_fade_duration = 0,
+            visibility_fade_delay = 0,
+            fade_delay = 0,
         },
 
 
@@ -276,6 +278,7 @@ local defaults = {
                 show_on_health = false,
                 show_on_power = false,
                 fade_duration = 0,
+                fade_delay = 0,
             },
 
             -- Grayscale icons configuration
@@ -307,6 +310,7 @@ local defaults = {
                 show_on_health = false,
                 show_on_power = false,
                 fade_duration = 0,
+                fade_delay = 0,
             },
         },
 
@@ -342,6 +346,7 @@ local defaults = {
                     show_on_health = false,
                     show_on_power = false,
                     fade_duration = 0,
+                    fade_delay = 0,
                 },
                 rep = {
                     show_on_hover = false,
@@ -350,6 +355,7 @@ local defaults = {
                     show_on_health = false,
                     show_on_power = false,
                     fade_duration = 0,
+                    fade_delay = 0,
                 },
             },
         },
@@ -446,6 +452,7 @@ local defaults = {
                 show_on_health = false,
                 show_on_power = false,
                 fade_duration = 0,
+                fade_delay = 0,
                 map_only = false,
             },
         },
@@ -464,6 +471,7 @@ local defaults = {
                 show_on_health = false,
                 show_on_power = false,
                 fade_duration = 0,
+                fade_delay = 0,
             },
         },
 
@@ -586,6 +594,7 @@ local defaults = {
                     showOnHealth   = true,
                     showOnMana     = true,
                     showOnHover    = false,
+                    fadeDelay      = 0,
                     fadeDuration   = 0,
                     advanced       = "",
                 },

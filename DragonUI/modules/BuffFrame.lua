@@ -396,6 +396,21 @@ local function StartBuffFrameFade(shouldShow)
     ApplyBuffFrameAlpha(currentAlpha)
 end
 
+local buffHideDelay = CreateFrame("Frame")
+buffHideDelay:Hide()
+buffHideDelay._elapsed = 0
+buffHideDelay._target = 0
+
+buffHideDelay:SetScript("OnUpdate", function(self, e)
+    self._elapsed = self._elapsed + e
+    if self._elapsed < self._target then return end
+    self:Hide()
+    -- Re-check on expiry: only fade out if we STILL should hide.
+    if not ShouldShowBuffFrame() then
+        StartBuffFrameFade(false)
+    end
+end)
+
 local function RefreshBuffVisibilityInternal()
     if not BuffFrameModule.enabled then
         return
@@ -405,9 +420,23 @@ local function RefreshBuffVisibilityInternal()
         return
     end
 
-    StartBuffFrameFade(ShouldShowBuffFrame())
+    if ShouldShowBuffFrame() then
+        buffHideDelay:Hide()          -- cancel any pending hide
+        buffHideDelay._elapsed = 0
+        StartBuffFrameFade(true)
+    else
+        local config = GetBuffVisibilityConfig()
+        local delay = tonumber(config and config.fade_delay) or 0
+        if delay <= 0 then
+            buffHideDelay:Hide()
+            StartBuffFrameFade(false)
+        elseif not buffHideDelay:IsShown() then
+            buffHideDelay._elapsed = 0
+            buffHideDelay._target = delay
+            buffHideDelay:Show()
+        end
+    end
 end
-
 
 function addon.RefreshBuffVisibility()
     if not BuffFrameModule.enabled then

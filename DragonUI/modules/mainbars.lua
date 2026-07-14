@@ -3030,9 +3030,52 @@ local function GetActionBarFadeDuration()
     local db = addon.db
         and addon.db.profile
         and addon.db.profile.actionbars
-
     return tonumber(db and db.visibility_fade_duration) or 0
 end
+
+local function GetActionBarFadeDelay()
+    local db = addon.db and addon.db.profile and addon.db.profile.actionbars
+    return tonumber(db and db.visibility_fade_delay) or 0
+end
+
+-- Per-bar pre-fade hide-delay timers.
+local actionBarHideDelays = {}
+local function GetActionBarHideDelayFrame(barName)
+    if not actionBarHideDelays[barName] then
+        local f = CreateFrame("Frame")
+        f:Hide()
+        f._elapsed = 0
+        f._target = 0
+        f._barName = barName
+        f:SetScript("OnUpdate", function(self, e)
+            self._elapsed = self._elapsed + e
+            if self._elapsed < self._target then return end
+            self:Hide()
+            -- Resolve the bar frame inline (don't rely on a local from another scope).
+            local barName = self._barName
+            local frame
+            if barName == "main" then
+                frame = addon.pUiMainBar
+            elseif barName == "bottom_left" then
+                frame = MultiBarBottomLeft
+            elseif barName == "bottom_right" then
+                frame = MultiBarBottomRight
+            elseif barName == "right" then
+                frame = MultiBarRight
+            elseif barName == "left" then
+                frame = MultiBarLeft
+            end
+            if frame then
+                addon._actionBarForceFade = barName
+                addon.UpdateActionBarVisibility(barName, frame)
+                addon._actionBarForceFade = nil
+            end
+        end)
+        actionBarHideDelays[barName] = f
+    end
+    return actionBarHideDelays[barName]
+end
+
 
 local function GetMainBarArtBaseAlpha()
     local buttonsConfig = addon.db
@@ -3319,6 +3362,8 @@ function addon.UpdateActionBarVisibility(barName, frame)
 
     -- Master: "Hidden". If not hidden, behave like normal WoW (always shown).
     if not config[barName .. "_hidden"] then
+        local d = actionBarHideDelays[barName]
+        if d then d:Hide(); d._elapsed = 0 end
         StartActionBarFade(barName, frame, true)
         return
     end
@@ -3360,7 +3405,25 @@ function addon.UpdateActionBarVisibility(barName, frame)
         end
     end
 
-    StartActionBarFade(barName, frame, shouldShow)
+    if shouldShow then
+        local d = actionBarHideDelays[barName]
+        if d then d:Hide(); d._elapsed = 0 end
+        StartActionBarFade(barName, frame, true)
+    else
+        local delay = GetActionBarFadeDelay()
+        if delay <= 0 or addon._actionBarForceFade == barName then
+            local d = actionBarHideDelays[barName]
+            if d then d:Hide(); d._elapsed = 0 end
+            StartActionBarFade(barName, frame, false)
+        else
+            local d = GetActionBarHideDelayFrame(barName)
+            if not d:IsShown() then
+                d._elapsed = 0
+                d._target = delay
+                d:Show()
+            end
+        end
+    end
 end
 
 

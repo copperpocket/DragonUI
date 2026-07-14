@@ -2332,12 +2332,42 @@ local function ApplyMicromenuSystem()
         ApplyMicroMenuAlpha(currentAlpha)
     end
 
+    local microMenuHideDelay = CreateFrame("Frame")
+    microMenuHideDelay:Hide()
+    microMenuHideDelay._elapsed = 0
+    microMenuHideDelay._target = 0
+
+    microMenuHideDelay:SetScript("OnUpdate", function(self, e)
+        self._elapsed = self._elapsed + e
+        if self._elapsed < self._target then return end
+        self:Hide()
+        -- Re-check on expiry: only fade out if we STILL should hide.
+        if not ShouldShowMicroMenu() then
+            StartMicroMenuFade(false)
+        end
+    end)
+
     local function RefreshMicroMenuVisibilityInternal()
         if not MicromenuModule.applied then
             return
         end
 
-        StartMicroMenuFade(ShouldShowMicroMenu())
+        if ShouldShowMicroMenu() then
+            microMenuHideDelay:Hide()          -- cancel any pending hide
+            microMenuHideDelay._elapsed = 0
+            StartMicroMenuFade(true)
+        else
+            local config = GetMicroMenuVisibilityConfig()
+            local delay = tonumber(config and config.fade_delay) or 0
+            if delay <= 0 then
+                microMenuHideDelay:Hide()
+                StartMicroMenuFade(false)
+            elseif not microMenuHideDelay:IsShown() then
+                microMenuHideDelay._elapsed = 0
+                microMenuHideDelay._target = delay
+                microMenuHideDelay:Show()
+            end
+        end
     end
 
     function addon.RefreshMicromenuVisibility()
@@ -2677,9 +2707,39 @@ local function ApplyMicromenuSystem()
         ApplyBagBarAlpha(currentAlpha)
     end
 
+    local bagBarHideDelay = CreateFrame("Frame")
+    bagBarHideDelay:Hide()
+    bagBarHideDelay._elapsed = 0
+    bagBarHideDelay._target = 0
+
+    bagBarHideDelay:SetScript("OnUpdate", function(self, e)
+        self._elapsed = self._elapsed + e
+        if self._elapsed < self._target then return end
+        self:Hide()
+        if not ShouldShowBagBar() then
+            StartBagBarFade(false)
+        end
+    end)
+
     local function RefreshBagBarVisibilityInternal()
-        StartBagBarFade(ShouldShowBagBar())
+        if ShouldShowBagBar() then
+            bagBarHideDelay:Hide()
+            bagBarHideDelay._elapsed = 0
+            StartBagBarFade(true)
+        else
+            local config = GetBagBarVisibilityConfig()
+            local delay = tonumber(config and config.fade_delay) or 0
+            if delay <= 0 then
+                bagBarHideDelay:Hide()
+                StartBagBarFade(false)
+            elseif not bagBarHideDelay:IsShown() then
+                bagBarHideDelay._elapsed = 0
+                bagBarHideDelay._target = delay
+                bagBarHideDelay:Show()
+            end
+        end
     end
+
 
     function addon.RefreshBagBarVisibility()
         if not IsModuleEnabled() or not MicromenuModule.applied then

@@ -1069,3 +1069,4 @@ L["Time in seconds for the target frame to fade in or out."] = true
 L["Hidden"] = true
 L["HiddenDesc"] = "Hide the frame by default. The conditions below reveal it when met."
 L["PlayerVisibilityDesc"] = "By default the frame is always visible, like the standard UI. Check Hidden to hide it and reveal it only under the conditions below. Uses alpha fading so it is safe in combat."
+L["Fade Delay"] = true

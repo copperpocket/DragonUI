@@ -122,6 +122,29 @@ local function StartFade(targetAlpha, duration)
     end
 end
 
+-- Pre-fade delay: wait N seconds before starting a fade-OUT.
+local hideDelayFrame = CreateFrame("Frame")
+hideDelayFrame:Hide()
+hideDelayFrame._elapsed = 0
+hideDelayFrame._target = 0
+
+local function CancelHideDelay()
+    hideDelayFrame:Hide()
+    hideDelayFrame._elapsed = 0
+end
+
+hideDelayFrame:SetScript("OnUpdate", function(self, e)
+    self._elapsed = self._elapsed + e
+    if self._elapsed < self._target then return end
+    self:Hide()
+    -- Re-check on expiry: only hide if we STILL should hide.
+    local config = GetVisConfig()
+    if config and not Vis.forceVisible and not UnitHasVehicleUI("player")
+       and not ShouldShow() then
+        StartFade(0, tonumber(config.fadeDuration) or 0)
+    end
+end)
+
 local fadeFrame = CreateFrame("Frame")
 
 fadeFrame:SetScript("OnUpdate", function(_, elapsed)
@@ -157,19 +180,32 @@ function Vis.Apply()
     if not PlayerFrame then return end
 
     local config = GetVisConfig()
-    if not config then
-        StartFade(1, 0)
-        return
-    end
+    if not config then CancelHideDelay(); StartFade(1, 0); return end
 
-    -- Editor mode / vehicle: always fully visible.
+    -- Editor mode / vehicle: always fully visible, no delay.
     if Vis.forceVisible or UnitHasVehicleUI("player") then
+        CancelHideDelay()
         StartFade(1, 0)
         return
     end
 
-    local targetAlpha = ShouldShow() and 1 or 0
-    StartFade(targetAlpha, tonumber(config.fadeDuration) or 0)
+    if ShouldShow() then
+        -- Reveal is always immediate; cancel any pending hide.
+        CancelHideDelay()
+        StartFade(1, tonumber(config.fadeDuration) or 0)
+    else
+        -- Hide: honor the pre-fade delay.
+        local delay = tonumber(config.fadeDelay) or 0
+        if delay <= 0 then
+            CancelHideDelay()
+            StartFade(0, tonumber(config.fadeDuration) or 0)
+        elseif (PlayerFrame:GetAlpha() or 1) > 0.001 and not hideDelayFrame:IsShown() then
+            -- Only start a countdown if currently visible and not already counting.
+            hideDelayFrame._elapsed = 0
+            hideDelayFrame._target = delay
+            hideDelayFrame:Show()
+        end
+    end
 end
 
 

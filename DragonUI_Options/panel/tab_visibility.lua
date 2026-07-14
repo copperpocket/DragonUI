@@ -46,10 +46,18 @@ local function BuildVisibilitySection(scroll, opts)
     end
 
     C:AddSlider(section, {
+        label = LO["Fade Delay"],
+        desc = "Seconds to wait after the condition ends before the frame begins to fade out. 0 = fade immediately.",
+        dbPath = opts.base .. ".fade_delay",
+        min = 0, max = 20, step = 0.5, width = 200,
+        disabled = visDisabled, callback = opts.refresh,
+    })
+
+    C:AddSlider(section, {
         label = LO["Fade Duration"],
         desc = "Time in seconds used to fade this frame in or out. Set to 0 for instant visibility changes.",
         dbPath = opts.base .. ".fade_duration",
-        min = 0, max = 3, step = 0.05, width = 200,
+        min = 0, max = 5, step = 0.1, width = 200,
         disabled = visDisabled, callback = opts.refresh,
     })
 
@@ -92,10 +100,18 @@ local function BuildPlayerVisibilitySection(scroll)
     C:AddToggle(section, { label = LO["Mouse Over"], desc = "Reveal the player frame while the mouse is over its position.", dbPath = "unitframe.player.visibility.showOnHover", disabled = visDisabled, callback = refreshPlayer })
 
     C:AddSlider(section, {
+        label = LO["Fade Delay"],
+        desc = "Seconds to wait after the condition ends before the frame begins to fade out. 0 = fade immediately.",
+        dbPath = "unitframe.player.visibility.fadeDelay",
+        min = 0, max = 20, step = 0.5, width = 200,
+        disabled = visDisabled, callback = refreshPlayer,
+    })
+
+    C:AddSlider(section, {
         label = LO["Fade Duration"],
         desc = "Time in seconds used to fade the player frame in or out. Set to 0 for instant visibility changes.",
         dbPath = "unitframe.player.visibility.fadeDuration",
-        min = 0, max = 10, step = 0.1, width = 200,
+        min = 0, max = 5, step = 0.1, width = 200,     -- max 10 -> 5
         disabled = visDisabled, callback = refreshPlayer,
     })
 
@@ -142,10 +158,19 @@ local function BuildActionBarSection(scroll, barKey, label)
     C:AddToggle(section, { label = LO["Show When Power Is Not Full"], dbPath = "actionbars."..barKey.."_show_on_power", disabled = visDisabled, callback = refreshBars })
 
     C:AddSlider(section, {
+        label = LO["Fade Delay"],
+        desc = "Seconds to wait after conditions end before the bar begins to fade out. Shared across all bars.",
+        dbPath = "actionbars.visibility_fade_delay",
+        min = 0, max = 20, step = 0.5, width = 200,
+        disabled = visDisabled,
+        callback = refreshBars,
+    })
+
+    C:AddSlider(section, {
         label = LO["Fade Duration"],
         desc = "Shared fade time for all action bars. Set to 0 for instant visibility changes.",
         dbPath = "actionbars.visibility_fade_duration",
-        min = 0, max = 3, step = 0.05, width = 200,
+        min = 0, max = 5, step = 0.1, width = 200,     -- max 3 -> 5
         disabled = visDisabled,
         callback = refreshBars,
     })
