@@ -12,6 +12,17 @@ local _arialn = addon.Fonts and addon.Fonts.ARIALN or "Fonts\\ARIALN.TTF"
 local defaults = {
     profile = {
         version = 1,
+        -- MASTER VISIBILITY (options-panel state; pushes values to elements below)
+        visibility_master = {
+            hidden           = false,
+            show_on_hover    = false,
+            show_in_combat   = false,
+            show_with_target = false,
+            show_on_health   = false,
+            show_on_power    = false,
+            fade_delay       = 0,
+            fade_duration    = 0,
+        },
         -- Widgets
         widgets = {
             minimap = {
