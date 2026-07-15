@@ -1071,3 +1071,4 @@ L["HiddenDesc"] = "Hide the frame by default. The conditions below reveal it whe
 L["PlayerVisibilityDesc"] = "By default the frame is always visible, like the standard UI. Check Hidden to hide it and reveal it only under the conditions below. Uses alpha fading so it is safe in combat."
 L["Fade Delay"] = true
 L["Show XP and reputation bars only when selected conditions are active. Existing XP and reputation availability rules still apply."] = true
+L["Keep Map Visible"] = true

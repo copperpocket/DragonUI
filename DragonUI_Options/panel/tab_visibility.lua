@@ -175,7 +175,7 @@ local function BuildVisibilitySection(scroll, opts)
     return section
 end
 
--- Player frame: camelCase keys + advanced macro field, so bespoke section.
+-- Player frame: camelCase keys, aligned to the master standard order/labels.
 local function BuildPlayerVisibilitySection(scroll)
     local refreshPlayer = function()
         if addon.PlayerFrame and addon.PlayerFrame.RefreshPlayerFrame then
@@ -189,7 +189,7 @@ local function BuildPlayerVisibilitySection(scroll)
 
     C:AddToggle(section, {
         label = LO["Hidden"],
-        desc = "Hide the player frame by default. The conditions below reveal it when met.",
+        desc = "Hide this frame by default. The conditions below reveal it when met.",
         dbPath = "unitframe.player.visibility.hideByDefault",
         callback = function()
             refreshPlayer()
@@ -203,11 +203,12 @@ local function BuildPlayerVisibilitySection(scroll)
 
     C:AddHeading(section, LO["Show When"])
 
-    C:AddToggle(section, { label = LO["In Combat"], dbPath = "unitframe.player.visibility.showInCombat", disabled = visDisabled, callback = refreshPlayer })
-    C:AddToggle(section, { label = LO["Target Selected"], dbPath = "unitframe.player.visibility.showWithTarget", disabled = visDisabled, callback = refreshPlayer })
-    C:AddToggle(section, { label = LO["Health Not Full"], desc = "Reveal the frame whenever current health is below maximum.", dbPath = "unitframe.player.visibility.showOnHealth", disabled = visDisabled, callback = refreshPlayer })
-    C:AddToggle(section, { label = LO["Power Not Full"], desc = "Reveal the frame whenever current mana/power is below maximum.", dbPath = "unitframe.player.visibility.showOnMana", disabled = visDisabled, callback = refreshPlayer })
-    C:AddToggle(section, { label = LO["Mouse Over"], desc = "Reveal the player frame while the mouse is over its position.", dbPath = "unitframe.player.visibility.showOnHover", disabled = visDisabled, callback = refreshPlayer })
+    -- Order matches MASTER_OPTS: hover, combat, target, health, power.
+    C:AddToggle(section, { label = LO["Show on Hover"], dbPath = "unitframe.player.visibility.showOnHover", disabled = visDisabled, callback = refreshPlayer })
+    C:AddToggle(section, { label = LO["Show in Combat"], dbPath = "unitframe.player.visibility.showInCombat", disabled = visDisabled, callback = refreshPlayer })
+    C:AddToggle(section, { label = LO["Show with Target"], dbPath = "unitframe.player.visibility.showWithTarget", disabled = visDisabled, callback = refreshPlayer })
+    C:AddToggle(section, { label = LO["Show When Health Is Not Full"], dbPath = "unitframe.player.visibility.showOnHealth", disabled = visDisabled, callback = refreshPlayer })
+    C:AddToggle(section, { label = LO["Show When Power Is Not Full"], dbPath = "unitframe.player.visibility.showOnMana", disabled = visDisabled, callback = refreshPlayer })
 
     C:AddSlider(section, {
         label = LO["Fade Delay"],
@@ -221,16 +222,7 @@ local function BuildPlayerVisibilitySection(scroll)
         label = LO["Fade Duration"],
         desc = "Time in seconds used to fade the player frame in or out. Set to 0 for instant visibility changes.",
         dbPath = "unitframe.player.visibility.fadeDuration",
-        min = 0, max = 5, step = 0.1, width = 200,     -- max 10 -> 5
-        disabled = visDisabled, callback = refreshPlayer,
-    })
-
-    C:AddHeading(section, LO["Advanced"])
-
-    C:AddEditBox(section, {
-        label = LO["Custom Macro Condition"],
-        desc = "Optional. Native macro conditional syntax, e.g. [combat][@target,exists][mod:shift]. If it resolves, the frame is shown. Leave blank to ignore.",
-        dbPath = "unitframe.player.visibility.advanced",
+        min = 0, max = 5, step = 0.1, width = 200,
         disabled = visDisabled, callback = refreshPlayer,
     })
 
@@ -333,7 +325,7 @@ local function BuildXpRepBarSection(scroll, subKey, label)
 
     C:AddToggle(section, {
         label = LO["Hidden"],
-        desc = "Hide this bar by default. The conditions below reveal it when met. Normal XP/Rep availability still applies.",
+        desc = "Hide this bar by default. The conditions below reveal it when met.",
         dbPath = base .. ".hidden",
         callback = function() refreshBars(); Panel:SelectTab("visibility") end,
     })
@@ -404,10 +396,14 @@ local function BuildVisibilityTab(scroll)
     C:AddDescription(scroll, "Master control for frame visibility. Check Hidden to hide a frame and reveal it only under the chosen conditions. Unchecked means the frame behaves like the standard UI.")
     C:AddSpacer(scroll)
 
+    -- Master Section
     BuildMasterVisibilitySection(scroll)
 
-    BuildPlayerVisibilitySection(scroll)
+    -- Target Frame
     BuildTargetVisibilitySection(scroll)
+
+    -- Player Frame
+    BuildPlayerVisibilitySection(scroll)
 
     -- Buffs
     BuildVisibilitySection(scroll, {
@@ -449,8 +445,8 @@ local function BuildVisibilityTab(scroll)
         end,
         extra = function(section, visDisabled)
             C:AddToggle(section, {
-                label = LO["Map Only Fade"],
-                desc = "Fade only the buttons, zone text, calendar, clock and tracking. The minimap and its blips stay fully visible.",
+                label = LO["Keep Map Visible"],
+                desc = "Fade only the minimap buttons, zone text, calendar, clock and tracking. The map itself and its blips stay fully visible.",
                 dbPath = "minimap.visibility.map_only",
                 disabled = visDisabled,
                 callback = function()
@@ -460,13 +456,14 @@ local function BuildVisibilityTab(scroll)
         end,
     })
 
+    BuildXpRepBarSection(scroll, "xp",  "Experience Bar")
+    BuildXpRepBarSection(scroll, "rep", "Reputation Bar")
+
     BuildActionBarSection(scroll, "main",         "Main Action Bar")
     BuildActionBarSection(scroll, "bottom_left",  "Bottom Left Bar")
     BuildActionBarSection(scroll, "bottom_right", "Bottom Right Bar")
     BuildActionBarSection(scroll, "right",        "Right Bar")
     BuildActionBarSection(scroll, "left",         "Left Bar")
-    BuildXpRepBarSection(scroll, "xp",  "Experience Bar")
-    BuildXpRepBarSection(scroll, "rep", "Reputation Bar")
 
 
 

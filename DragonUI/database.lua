@@ -609,7 +609,6 @@ local defaults = {
                     showOnHover    = false,
                     fadeDelay      = 0,
                     fadeDuration   = 0,
-                    advanced       = "",
                 },
             },
             target = {
